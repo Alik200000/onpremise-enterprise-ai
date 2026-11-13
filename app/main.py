@@ -37,7 +37,10 @@ def load_initial_samples():
             if fname.endswith(".txt"):
                 chunks = DocumentParser.parse_text(fpath, doc_type="GOST_OR_DRAWING")
                 rag_store.add_chunks(chunks)
-    print(f"✅ Локальная база знаний инициализирована: {len(rag_store.chunks)} чанков в оперативной памяти.")
+    try:
+        print(f"[OK] Knowledge Base initialized: {len(rag_store.chunks)} chunks loaded.")
+    except Exception:
+        pass
 
 class ChatQueryRequest(BaseModel):
     query: str
