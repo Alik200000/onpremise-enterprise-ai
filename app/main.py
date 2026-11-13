@@ -34,8 +34,15 @@ def load_initial_samples():
     if os.path.exists(samples_dir):
         for fname in os.listdir(samples_dir):
             fpath = os.path.join(samples_dir, fname)
-            if fname.endswith(".txt"):
-                chunks = DocumentParser.parse_text(fpath, doc_type="GOST_OR_DRAWING")
+            lower = fname.lower()
+            if lower.endswith(".txt"):
+                chunks = DocumentParser.parse_text(fpath, doc_type="GOST_OR_DOC")
+                rag_store.add_chunks(chunks)
+            elif lower.endswith((".dxf", ".dwg")):
+                chunks = DocumentParser.parse_dxf(fpath)
+                rag_store.add_chunks(chunks)
+            elif lower.endswith(".pdf"):
+                chunks = DocumentParser.parse_pdf(fpath)
                 rag_store.add_chunks(chunks)
     try:
         print(f"[OK] Knowledge Base initialized: {len(rag_store.chunks)} chunks loaded.")
