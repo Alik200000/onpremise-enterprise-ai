@@ -10,6 +10,7 @@ import shutil
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.parser import DocumentParser
@@ -20,6 +21,15 @@ app = FastAPI(
     title="ТОО Enterprise AI (On-Premise)",
     description="Закрытый корпоративный ИИ с локальным RAG и мультиагентной системой безопасности",
     version="1.0.0"
+)
+
+# Включаем CORS для всех источников (поддержка браузерных запросов с GitHub Pages и внешних клиентов)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Монтируем статику
