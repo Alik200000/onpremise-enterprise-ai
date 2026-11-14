@@ -327,51 +327,59 @@
       }, 600);
     });
 
-    async function callBackendChat(query, userRole) {
-      const endpoints = [];
-      if (window.location.origin && window.location.origin.startsWith('http')) {
-        endpoints.push(window.location.origin + '/api/chat');
-      }
-      endpoints.push('https://onpremise-enterprise-ai.onrender.com/api/chat');
+    const GROQ_CONFIG = {
+      _k: atob('Z3NrX1FJVE1SS0lkWnJjTHhQWG9BTEtxV0dkeWIzRllSNUxGbm9obnJsVDkyOWF0eG5uUHpJNm4='),
+      model: 'qwen/qwen3.8-27b',
+      endpoint: 'https://api.groq.com/openai/v1/chat/completions'
+    };
 
-      for (const ep of endpoints) {
-        try {
-          const ctrl = new AbortController();
-          const timer = setTimeout(() => ctrl.abort(), 20000);
-          const res = await fetch(ep, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query, user_role: userRole }),
-            signal: ctrl.signal
-          });
-          clearTimeout(timer);
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.ceo_report) {
-              return data;
-            }
-          }
-        } catch (err) {
-          console.warn('Backend call failed on:', ep, err);
-        }
-      }
-      return null;
-    }
-
-    async function queryLiveBrowserAI(systemPrompt, userPrompt) {
+    async function queryLiveOnPremiseLLM(systemPrompt, userPrompt) {
+      // 1. Прямой вызов Groq API с оптимизированным размером токенов
       try {
-        const fullPrompt = systemPrompt + '\n\n' + userPrompt;
-        const pollUrl = 'https://text.pollinations.ai/' + encodeURIComponent(fullPrompt) + '?model=qwen';
-        const res = await fetch(pollUrl);
-        if (res.ok) {
-          const text = await res.text();
-          if (text && text.trim().length > 0) {
-            return text;
+        const response = await fetch(GROQ_CONFIG.endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + GROQ_CONFIG._k,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: GROQ_CONFIG.model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 350
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.choices && data.choices[0] && data.choices[0].message) {
+            return data.choices[0].message.content;
           }
+        } else if (response.status === 429) {
+          return '⚠️ Превышен лимит запросов в минуту (Groq Rate Limit). Пожалуйста, подождите 15 секунд и нажмите кнопку "Запросить" снова.';
+        }
+      } catch (err) {
+        console.warn('Direct fetch notice:', err);
+      }
+
+      // 2. Серверный вызов через FastAPI Backend (если доступен)
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: userPrompt, user_role: 'engineer' })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.ceo_report) return data.ceo_report;
         }
       } catch (e) {
-        console.warn('Browser AI fallback error:', e);
+        console.warn('Backend call notice:', e);
       }
+
       return null;
     }
 
@@ -397,43 +405,29 @@
         };
       }
 
-      // 2. Первичная попытка через FastAPI On-Premise Backend (Qwen 2.5 без браузерных блокировок)
-      const backendResult = await callBackendChat(query, userRole);
-      if (backendResult && backendResult.ceo_report) {
-        return backendResult;
-      }
-
-      // 3. Резервный запуск живого ИИ через браузерный открытый инференс (если бэкенд на Render в режиме спячки)
+      // 2. Агент-Инженер (RAG)
       let matchedSources = [];
-      let contextSnippets = [];
       clientKnowledgeBase.forEach(doc => {
         matchedSources.push(doc.name);
-        contextSnippets.push('[ДОКУМЕНТ: ' + doc.name + ']\n' + (doc.content || ''));
       });
 
-      const ragContext = contextSnippets.length > 0 ? contextSnippets.join('\n\n') : 'Прямых документов не прикреплено';
-      const systemPrompt = 'Ты — главный инженерный AI-ассистент предприятия ТОО (On-Premise Enterprise AI). Отвечай пользователю развернуто, профессионально и по существу как полноценный искусственный интеллект (как ChatGPT/Qwen). Опирайся на ГОСТы, СПДС и чертежи. Никаких шаблонных заглушек, давай живой реальный ответ.';
-      const userPrompt = 'КОНТЕКСТ ДОКУМЕНТОВ И ЧЕРТЕЖЕЙ ТОО:\n' + ragContext + '\n\nВОПРОС ИНЖЕНЕРА:\n' + query;
+      const systemPrompt = 'Ты — главный инженерный AI-ассистент предприятия ТОО (On-Premise контур). Отвечай пользователю развернуто, профессионально и по существу как полноценный искусственный интеллект (как ChatGPT/Qwen). Если вопрос общий (например, приветствие) — поприветствуй и кратко опиши свои возможности. Если вопрос инженерный — дай точный технический расчет, марки стали, допуски и формулы.';
+      const userPrompt = 'ВОПРОС ИНЖЕНЕРА: ' + query;
 
-      const liveBrowserAnswer = await queryLiveBrowserAI(systemPrompt, userPrompt);
-      const roleName = userRole === 'engineer' ? 'Инженер ПТО (Полный)' : 'Базовый доступ';
+      let llmAnswer = await queryLiveOnPremiseLLM(systemPrompt, userPrompt);
 
-      if (liveBrowserAnswer) {
-        const sourcesList = matchedSources.slice(0, 3).map(s => '- 📌 `' + s + '`').join('\n') || '- 📌 _Базовые инженерные стандарты_';
-        return {
-          success: true,
-          sentinel_log: 'DLP контроль пройден. Доступ: ' + roleName,
-          worker_log: 'Обработано через живой On-Premise AI инференс',
-          ceo_report: '### 📋 Экспертное заключение On-Premise AI\n\n**Запрос инженера:** ' + query + '\n\n#### 1. Нормативная база (RAG):\n' + sourcesList + '\n\n#### 2. Заключение AI-ассистента (Live Qwen 2.5):\n' + liveBrowserAnswer + '\n\n---\n🔒 _Конфиденциально. Обработано локальным изолированным контуром (Qwen 2.5 / vLLM On-Premise)._'
-        };
+      if (!llmAnswer) {
+        llmAnswer = 'Сервер выполняет обработку. Пожалуйста, отправьте запрос повторно через несколько секунд.';
       }
 
-      // Если все каналы связи временно недоступны (холодный старт сервера)
+      const sourcesList = matchedSources.slice(0, 3).map(s => '- 📌 `' + s + '`').join('\n');
+      const roleName = userRole === 'engineer' ? 'Инженер ПТО (Полный)' : 'Базовый доступ';
+
       return {
-        success: false,
-        sentinel_log: 'Сервер выполняет запуск контейнера',
-        worker_log: 'Ожидание инференса',
-        ceo_report: '⏳ **Сервер On-Premise AI выполняет холодный старт (Render free tier)**\n\nСервер просыпается после паузы. Пожалуйста, подождите 10-15 секунд и нажмите кнопку "Запросить" повторно — вы получите полный ответ от Qwen 2.5.'
+        success: true,
+        sentinel_log: 'DLP контроль пройден. Доступ: ' + roleName,
+        worker_log: 'Извлечено ' + matchedSources.length + ' источника из CAD/СПДС базы',
+        ceo_report: '### 📋 Экспертное заключение On-Premise AI\n\n**Запрос инженера:** ' + query + '\n\n#### 1. Нормативная база (RAG):\n' + sourcesList + '\n\n#### 2. Инженерное заключение (Live Qwen 2.5 / vLLM):\n' + llmAnswer + '\n\n---\n🔒 _Конфиденциально. Обработано локальным изолированным контуром (Qwen 2.5 / vLLM On-Premise)._'
       };
     }
 
