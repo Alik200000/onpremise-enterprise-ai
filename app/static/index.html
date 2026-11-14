@@ -44,6 +44,12 @@
       background: linear-gradient(135deg, #0284c7, #2563eb);
       box-shadow: 0 6px 20px -2px rgba(2, 132, 199, 0.25);
     }
+      .katex-error {
+      color: inherit !important;
+      background: transparent !important;
+      border: none !important;
+      font-family: inherit !important;
+    }
   </style>
   <!-- KaTeX для идеального рендеринга инженерных формул и расчетов -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
@@ -343,6 +349,21 @@
       }, 600);
     });
 
+        function formatMarkdown(text) {
+      if (!text) return '';
+      return text
+        .replace(/^### (.*$)/gim, '<h3 class="text-sm font-bold text-slate-900 mt-4 mb-2 flex items-center gap-1.5">$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2 class="text-base font-bold text-slate-900 mt-4 mb-2">$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1 class="text-lg font-bold text-slate-900 mt-4 mb-3">$1</h1>')
+        .replace(/\*\*\*(.*?)\*\*\*/gim, '<strong><em>$1</em></strong>')
+        .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-semibold text-slate-900">$1</strong>')
+        .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+        .replace(/^\* (.*$)/gim, '<div class="flex items-start gap-2 my-1"><span class="text-sky-500 font-bold">•</span><span>$1</span></div>')
+        .replace(/^- (.*$)/gim, '<div class="flex items-start gap-2 my-1"><span class="text-sky-500 font-bold">•</span><span>$1</span></div>')
+        .replace(/\n\n/g, '<div class="my-2"></div>')
+        .replace(/\n/g, '<br/>');
+    }
+
     const GROQ_CONFIG = {
       _k: atob('Z3NrX1FJVE1SS0lkWnJjTHhQWG9BTEtxV0dkeWIzRllSNUxGbm9obnJsVDkyOWF0eG5uUHpJNm4='),
       model: 'qwen/qwen3.8-27b',
@@ -519,7 +540,7 @@
           </div>
           <div class="chat-bubble-ai ${borderTone} rounded-3xl p-5 text-sm text-slate-800 leading-relaxed w-full">
             ${auditBadges}
-            <div class="whitespace-pre-line text-slate-700">${data.ceo_report}</div>
+            <div class="report-content text-slate-700 leading-relaxed text-sm">${formatMarkdown(data.ceo_report)}</div>
           </div>
         `;
         chatArea.appendChild(botMsg);
@@ -533,7 +554,7 @@
               {left: '\\(', right: '\\)', display: false},
               {left: '\\[', right: '\\]', display: true}
             ],
-            throwOnError: false
+            throwOnError: false, errorColor: '#1e293b'
           });
         }
       }, 500);
