@@ -45,6 +45,10 @@
       box-shadow: 0 6px 20px -2px rgba(2, 132, 199, 0.25);
     }
   </style>
+  <!-- KaTeX для идеального рендеринга инженерных формул и расчетов -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 </head>
 <body class="h-screen w-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white">
 
@@ -360,7 +364,7 @@
               { role: 'user', content: userPrompt }
             ],
             temperature: 0.2,
-            max_tokens: 650
+            max_tokens: 1500
           })
         });
 
@@ -431,12 +435,16 @@
 
       const fullContext = contextSnippets.join('\n\n');
 
-      const systemPrompt = 'Ты — ведущий инженер-конструктор и AI-эксперт корпоративного контура ТОО.\n' +
-        'ВАЖНЫЕ ПРАВИЛА ОФОРМЛЕНИЯ:\n' +
-        '1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать знаки доллара ($) и разметку LaTeX. Пиши единицы измерения и формулы обычным читаемым текстом: см2, мм, кН, МПа, Ry, lambda, phi.\n' +
-        '2. Формулы пиши понятным текстом (например: N_пред = phi * Ry * A).\n' +
-        '3. Используй параметры конструкций из предоставленного контекста чертежей ТОО (если пользователь спрашивает про ОМ-1, бери готовые данные из чертежа KM-04-2026: Двутавр 30Ш1, С345-3, A=68.3 см2, i=3.82 см, N=45.2 кН).\n' +
-        '4. Обязательно завершай расчет и приводи итоговый запас прочности понятным выводом без обрыва текста.';
+            const systemPrompt = `Ты — ведущий инженер-конструктор и AI-эксперт корпоративного контура ТОО.
+ИНСТРУКЦИЯ ПО ОФОРМЛЕНИЮ РАСЧЕТОВ:
+1. Опирайся на параметры чертежей ТОО (если вопрос про ОМ-1, бери: Двутавр 30Ш1, С345-3, A=68.3 см2, i=3.82 см, N=45.2 кН, l=4.2 м).
+2. Формулы оформляй через LaTeX ($...$ для строчных, $$...$$ для блочных), чтобы система отрендерила их в виде красивых математических формул.
+3. ОБЯЗАТЕЛЬНО завершай расчет и в конце приводи блок:
+ИТОГОВЫЙ ВЫВОД:
+- Фактическая сжимающая нагрузка: ...
+- Предельная несущая способность: ...
+- Запас прочности: ... раз.
+- Инженерная рекомендация по оптимизации металлоемкости.`;
 
       const userPrompt = 'КОНТЕКСТ ЧЕРТЕЖЕЙ И СТАНДАРТОВ ТОО:\n' + fullContext + '\n\nВОПРОС ИНЖЕНЕРА:\n' + query;
 
@@ -517,6 +525,17 @@
         chatArea.appendChild(botMsg);
         chatArea.scrollTop = chatArea.scrollHeight;
         lucide.createIcons();
+        if (window.renderMathInElement) {
+          renderMathInElement(botMsg, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false},
+              {left: '\\(', right: '\\)', display: false},
+              {left: '\\[', right: '\\]', display: true}
+            ],
+            throwOnError: false
+          });
+        }
       }, 500);
     });
   </script>
