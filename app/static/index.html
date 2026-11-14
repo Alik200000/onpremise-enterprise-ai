@@ -275,9 +275,21 @@
     }
 
     const clientKnowledgeBase = [
-      { name: "KM_04_2026_REAL_DRAWING.dxf", type: "CAD" },
-      { name: "GOST_21_101_SPDS.txt", type: "СПДС" },
-      { name: "SNiP_RK_METALL_SPECS.pdf", type: "СНиП РК" }
+      {
+        name: "KM_04_2026_REAL_DRAWING.dxf",
+        type: "CAD",
+        content: "СПЕЦИФИКАЦИЯ ЧЕРТЕЖА КМ-04-2026: Опора металлическая ОМ-1. Профиль: Двутавр 30Ш1 (СТО АСЧМ 20-93), площадь сечения A = 68.3 см2, радиус инерции i_min = 3.82 см. Марка стали: С345-3 (расчетное сопротивление Ry = 33.5 кН/см2 или 335 МПа). Расчетная длина стойки l = 4.2 м (420 см). Фактическая сжимающая нагрузка: N_факт = 45.2 кН. Базовый узел: 4хМ24 ГОСТ 24379.1-2012 (длина 800 мм), опорная плита 25 мм (сталь 09Г2С)."
+      },
+      {
+        name: "GOST_21_101_SPDS.txt",
+        type: "СПДС",
+        content: "ГОСТ 21.101-2020: Основные требования к проектной и рабочей документации. Оформление чертежей марки КМ, ведомости металлопроката, масштабы узлов 1:5, 1:10, 1:20."
+      },
+      {
+        name: "SNiP_RK_METALL_SPECS.pdf",
+        type: "СНиП РК",
+        content: "СП 16.13330 / СНиП РК: Стальные конструкции. Формула проверки устойчивости центрально-сжатых стержней: N <= phi * Ry * A * gamma_c. Гибкость lambda = l / i_min. Предельная гибкость колонн: 120-150."
+      }
     ];
 
     function renderKnowledgeBase() {
@@ -334,7 +346,6 @@
     };
 
     async function queryLiveOnPremiseLLM(systemPrompt, userPrompt) {
-      // 1. Прямой вызов Groq API с оптимизированным размером токенов
       try {
         const response = await fetch(GROQ_CONFIG.endpoint, {
           method: 'POST',
@@ -348,15 +359,19 @@
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt }
             ],
-            temperature: 0.3,
-            max_tokens: 350
+            temperature: 0.2,
+            max_tokens: 650
           })
         });
 
         if (response.ok) {
           const data = await response.json();
           if (data && data.choices && data.choices[0] && data.choices[0].message) {
-            return data.choices[0].message.content;
+            let content = data.choices[0].message.content;
+            // Очистка от случайных LaTeX символов $ ... $ для чистоты отображения
+            content = content.replace(/\$([^$]+)\$/g, '$1');
+            content = content.replace(/\^2/g, '²').replace(/\^4/g, '⁴');
+            return content;
           }
         } else if (response.status === 429) {
           return '⚠️ Превышен лимит запросов в минуту (Groq Rate Limit). Пожалуйста, подождите 15 секунд и нажмите кнопку "Запросить" снова.';
@@ -365,7 +380,6 @@
         console.warn('Direct fetch notice:', err);
       }
 
-      // 2. Серверный вызов через FastAPI Backend (если доступен)
       try {
         const res = await fetch('/api/chat', {
           method: 'POST',
@@ -405,14 +419,26 @@
         };
       }
 
-      // 2. Агент-Инженер (RAG)
+      // 2. Агент-Инженер (RAG): подтягиваем контекст чертежей
       let matchedSources = [];
+      let contextSnippets = [];
       clientKnowledgeBase.forEach(doc => {
         matchedSources.push(doc.name);
+        if (doc.content) {
+          contextSnippets.push('[' + doc.name + ']: ' + doc.content);
+        }
       });
 
-      const systemPrompt = 'Ты — главный инженерный AI-ассистент предприятия ТОО (On-Premise контур). Отвечай пользователю развернуто, профессионально и по существу как полноценный искусственный интеллект (как ChatGPT/Qwen). Если вопрос общий (например, приветствие) — поприветствуй и кратко опиши свои возможности. Если вопрос инженерный — дай точный технический расчет, марки стали, допуски и формулы.';
-      const userPrompt = 'ВОПРОС ИНЖЕНЕРА: ' + query;
+      const fullContext = contextSnippets.join('\n\n');
+
+      const systemPrompt = 'Ты — ведущий инженер-конструктор и AI-эксперт корпоративного контура ТОО.\n' +
+        'ВАЖНЫЕ ПРАВИЛА ОФОРМЛЕНИЯ:\n' +
+        '1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать знаки доллара ($) и разметку LaTeX. Пиши единицы измерения и формулы обычным читаемым текстом: см2, мм, кН, МПа, Ry, lambda, phi.\n' +
+        '2. Формулы пиши понятным текстом (например: N_пред = phi * Ry * A).\n' +
+        '3. Используй параметры конструкций из предоставленного контекста чертежей ТОО (если пользователь спрашивает про ОМ-1, бери готовые данные из чертежа KM-04-2026: Двутавр 30Ш1, С345-3, A=68.3 см2, i=3.82 см, N=45.2 кН).\n' +
+        '4. Обязательно завершай расчет и приводи итоговый запас прочности понятным выводом без обрыва текста.';
+
+      const userPrompt = 'КОНТЕКСТ ЧЕРТЕЖЕЙ И СТАНДАРТОВ ТОО:\n' + fullContext + '\n\nВОПРОС ИНЖЕНЕРА:\n' + query;
 
       let llmAnswer = await queryLiveOnPremiseLLM(systemPrompt, userPrompt);
 
