@@ -501,7 +501,7 @@
         statusText.innerText = '2. Агент-Инженер: Сканирование CAD-спецификаций и ГОСТов...';
       }, 250);
 
-      setTimeout(() => {
+      setTimeout(async () => {
         const data = await processClientQuery(query, userRole);
         statusBar.classList.add('hidden');
 
