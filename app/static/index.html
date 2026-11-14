@@ -362,6 +362,17 @@
 
             function formatMarkdown(text) {
       if (!text) return '';
+
+      // Конвертируем формулы $...$ в \(...\) только если внутри латинские символы и цифры
+      text = text.replace(/\$([A-Za-z0-9_\\^+\-=/*<>&%\s.,]{1,50})\$/g, '\\($1\\)');
+      // Удаляем любые оставшиеся одиночные знаки доллара в русском тексте, чтобы они не сливали слова
+      text = text.replace(/\$/g, '');
+
+      // Форматируем жирный текст и курсив
+      text = text.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-slate-900">$1</strong>');
+      text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
       var lines = text.split(String.fromCharCode(10));
       var out = [];
       for (var i = 0; i < lines.length; i++) {
@@ -381,7 +392,7 @@
         } else if (line.trim() === '') {
           out.push('<div class="my-2"></div>');
         } else {
-          out.push('<div>' + line + '</div>');
+          out.push('<div class="my-0.5">' + line + '</div>');
         }
       }
       return out.join('');
@@ -663,9 +674,8 @@
           renderMathInElement(botMsg, {
             delimiters: [
               {left: '$$', right: '$$', display: true},
-              {left: '$', right: '$', display: false},
               {left: '\(', right: '\)', display: false},
-              {left: '\[', right: '\]', display: true}
+              {left: '\\[', right: '\\]', display: true}
             ],
             throwOnError: false, errorColor: '#1e293b'
           });
