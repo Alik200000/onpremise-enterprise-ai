@@ -360,24 +360,31 @@
       }, 600);
     });
 
-        function formatMarkdown(text) {
+            function formatMarkdown(text) {
       if (!text) return '';
-      return text
-        .replace(/^##### (.*$)/gim, '<h5 class="text-xs font-bold text-slate-900 mt-3 mb-1">$1</h5>')
-        .replace(/^#### (.*$)/gim, '<h4 class="text-sm font-bold text-slate-900 mt-3 mb-1.5">$1</h4>')
-        .replace(/^### (.*$)/gim, '<h3 class="text-base font-bold text-slate-900 mt-4 mb-2">$1</h3>')
-        .replace(/^## (.*$)/gim, '<h2 class="text-lg font-bold text-slate-900 mt-5 mb-2">$1</h2>')
-        .replace(/^# (.*$)/gim, '<h1 class="text-xl font-bold text-slate-900 mt-6 mb-3">$1</h1>')
-        .replace(/\*\*\*(.*?)\*\*\*/gim, '<strong><em>$1</em></strong>')
-        .replace(/\*\*(.*?)\*\*/gim, '<strong class="font-semibold text-slate-900">$1</strong>')
-        .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-        .replace(/^\* (.*$)/gim, '<div class="flex items-start gap-2 my-1"><span class="text-sky-500 font-bold">•</span><span>$1</span></div>')
-        .replace(/^- (.*$)/gim, '<div class="flex items-start gap-2 my-1"><span class="text-sky-500 font-bold">•</span><span>$1</span></div>')
-        .replace(/
-
-/g, '<div class="my-2.5"></div>')
-        .replace(/
-/g, '<br/>');
+      var lines = text.split(String.fromCharCode(10));
+      var out = [];
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (line.startsWith('##### ')) {
+          out.push('<h5 class="text-xs font-bold text-slate-900 mt-3 mb-1">' + line.substring(6) + '</h5>');
+        } else if (line.startsWith('#### ')) {
+          out.push('<h4 class="text-sm font-bold text-slate-900 mt-3 mb-1.5">' + line.substring(5) + '</h4>');
+        } else if (line.startsWith('### ')) {
+          out.push('<h3 class="text-base font-bold text-slate-900 mt-4 mb-2">' + line.substring(4) + '</h3>');
+        } else if (line.startsWith('## ')) {
+          out.push('<h2 class="text-lg font-bold text-slate-900 mt-5 mb-2">' + line.substring(3) + '</h2>');
+        } else if (line.startsWith('# ')) {
+          out.push('<h1 class="text-xl font-bold text-slate-900 mt-6 mb-3">' + line.substring(2) + '</h1>');
+        } else if (line.startsWith('* ') || line.startsWith('- ')) {
+          out.push('<div class="flex items-start gap-2 my-1"><span class="text-sky-500 font-bold">•</span><span>' + line.substring(2) + '</span></div>');
+        } else if (line.trim() === '') {
+          out.push('<div class="my-2"></div>');
+        } else {
+          out.push('<div>' + line + '</div>');
+        }
+      }
+      return out.join('');
     }
 
     const GROQ_CONFIG = {
