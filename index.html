@@ -76,18 +76,25 @@
     </div>
 
     <div class="flex items-center gap-3.5">
-      <!-- Authenticated User Profile Badge -->
-      <div id="userProfileBadge" class="flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs shadow-xs">
-        <span id="userAvatar" class="text-base select-none">👨‍💼</span>
+      <!-- Authenticated User Profile Badge (Clickable to open profile & password change) -->
+      <div id="userProfileBadge" onclick="openProfileModal()" class="flex items-center gap-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 hover:border-slate-300 rounded-xl px-3 py-1.5 text-xs shadow-xs cursor-pointer transition-all group" title="Нажмите, чтобы открыть профиль сотрудника и сменить пароль">
+        <span id="userAvatar" class="text-base select-none group-hover:scale-110 transition-transform">👨‍💼</span>
         <div class="flex flex-col text-left">
-          <span id="userName" class="font-bold text-slate-900 leading-tight">Д. К. Алимов</span>
+          <span id="userName" class="font-bold text-slate-900 leading-tight group-hover:text-sky-600 transition-colors">Д. К. Алимов</span>
           <span id="userRoleTitle" class="text-[10px] text-sky-700 font-mono font-semibold">Инженер ПТО (Полный)</span>
         </div>
         <input type="hidden" id="userRole" value="engineer" />
-        <button onclick="logoutUser()" class="ml-1 text-slate-400 hover:text-rose-600 transition-colors p-1 rounded-lg hover:bg-slate-100" title="Выйти из учетной записи">
+        <button onclick="event.stopPropagation(); logoutUser()" class="ml-1 text-slate-400 hover:text-rose-600 transition-colors p-1 rounded-lg hover:bg-slate-200/60" title="Выйти из учетной записи">
           <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
         </button>
       </div>
+
+      <!-- Admin Panel Button (Служба ИБ и Реестр компании) -->
+      <button id="adminPanelHeaderBtn" onclick="openAdminModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold transition-all shadow-xs" title="Открыть Админ-панель ИБ (реестр сотрудников и журнал нарушений)">
+        <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-purple-600"></i>
+        <span class="hidden sm:inline">Админ-панель ИБ</span>
+        <span id="incidentBadge" class="px-1.5 py-0.2 rounded-full text-[9px] bg-rose-600 text-white font-mono font-bold">0</span>
+      </button>
 
       <div class="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-600 font-mono">
         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -364,6 +371,19 @@
             <i data-lucide="key" class="w-3 h-3 text-sky-600"></i> Тестовые аккаунты сотрудников (кликните для подстановки):
           </div>
           <div class="space-y-1.5 text-xs">
+            <!-- Admin Account -->
+            <div onclick="quickLogin('admin@prom.kz', 'admin2026')" class="p-2.5 rounded-xl bg-purple-50/60 hover:bg-purple-100/80 border border-purple-200 hover:border-purple-300 cursor-pointer transition-all flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm">🛡️</span>
+                <div>
+                  <div class="font-bold text-slate-900 text-[11px]">С. М. Байтереков (Служба ИБ / Админ)</div>
+                  <div class="text-[10px] font-mono text-purple-700">admin@prom.kz • admin2026</div>
+                </div>
+              </div>
+              <span class="text-[9px] font-mono bg-purple-100 text-purple-800 border border-purple-300 px-1.5 py-0.5 rounded font-semibold">Админ ИБ</span>
+            </div>
+
+
             <!-- Engineer -->
             <div onclick="quickLogin('engineer@prom.kz', 'pto2026')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-sky-50/80 border border-slate-200 hover:border-sky-300 cursor-pointer transition-all flex items-center justify-between">
               <div class="flex items-center gap-2">
@@ -409,6 +429,345 @@
     </div>
   </div>
 
+
+  <!-- 1. Employee Profile Modal (Профиль сотрудника и смена пароля) -->
+  <div id="profileModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-fade-in">
+      <div class="p-6 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div id="profileModalAvatar" class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-2xl border border-white/10">👨‍💼</div>
+          <div>
+            <h3 id="profileModalName" class="font-extrabold text-base leading-tight">Д. К. Алимов</h3>
+            <p id="profileModalRoleBadge" class="text-xs text-sky-400 font-mono mt-0.5 font-medium">Инженер ПТО (Полный доступ)</p>
+          </div>
+        </div>
+        <button onclick="closeProfileModal()" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <!-- User Info Details -->
+        <div class="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
+          <div>
+            <span class="text-slate-400 block text-[10px] font-mono uppercase">Корпоративный Email</span>
+            <span id="profileModalEmail" class="font-bold text-slate-800 font-mono">engineer@prom.kz</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px] font-mono uppercase">Подразделение</span>
+            <span id="profileModalDept" class="font-bold text-slate-800">Производственно-технический отдел</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px] font-mono uppercase">Статус пароля</span>
+            <span id="profileModalPwdStatus" class="font-semibold text-emerald-600 flex items-center gap-1">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Постоянный личный
+            </span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[10px] font-mono uppercase">Права DLP / RBAC</span>
+            <span id="profileModalDlpRights" class="font-semibold text-sky-700">ГОСТы, КМД, Расчеты ОМ-1</span>
+          </div>
+        </div>
+
+        <!-- Password Change Section (Вариант 2: смена пароля сотрудником) -->
+        <div class="pt-2 border-t border-slate-100">
+          <h4 class="text-xs font-bold text-slate-900 mb-3 flex items-center gap-1.5">
+            <i data-lucide="key-round" class="w-4 h-4 text-sky-600"></i> Смена пароля сотрудника
+          </h4>
+
+          <div id="profilePwdAlert" class="hidden mb-3 p-3 rounded-xl text-xs flex items-center gap-2"></div>
+
+          <form id="profilePwdForm" onsubmit="handleProfilePasswordChange(event)" class="space-y-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Текущий пароль</label>
+              <input type="password" id="currentPwdInput" required placeholder="••••••••" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-sky-500 font-mono bg-slate-50 focus:bg-white" />
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Новый пароль</label>
+                <input type="password" id="newPwdInput" required placeholder="Мин. 6 символов" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-sky-500 font-mono bg-slate-50 focus:bg-white" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Повторите пароль</label>
+                <input type="password" id="confirmPwdInput" required placeholder="••••••••" class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-sky-500 font-mono bg-slate-50 focus:bg-white" />
+              </div>
+            </div>
+            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+              <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+              <span>Сохранить новый пароль</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="pt-2 flex items-center justify-between border-t border-slate-100">
+          <button type="button" onclick="logoutUser()" class="text-rose-600 hover:text-rose-700 text-xs font-semibold flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-rose-50 transition-colors">
+            <i data-lucide="log-out" class="w-4 h-4"></i> Выйти из системы
+          </button>
+          <button type="button" onclick="closeProfileModal()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors">
+            Закрыть
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Must Change Password Modal (Окно обязательной смены временного пароля при первом входе) -->
+  <div id="mustChangePasswordModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-amber-300 p-7 text-left animate-fade-in relative overflow-hidden">
+      <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-4">
+        <i data-lucide="shield-alert" class="w-6 h-6"></i>
+      </div>
+      <h3 class="text-lg font-extrabold text-slate-900">Установите личный пароль</h3>
+      <p class="text-xs text-slate-600 mt-1 mb-4 leading-relaxed">
+        Администратор безопасности ТОО «ПромКонструкция» выдал вам <b>временный пароль</b>. По регламенту ИБ необходимо установить ваш постоянный пароль перед доступом к чертежам и расчетам.
+      </p>
+
+      <div id="mustChangeAlert" class="hidden mb-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs"></div>
+
+      <form onsubmit="handleMustChangePasswordSubmit(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Новый постоянный пароль</label>
+          <input type="password" id="firstLoginNewPwd" required placeholder="Придумайте надежный пароль" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-amber-500 font-mono bg-slate-50 focus:bg-white" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Повторите новый пароль</label>
+          <input type="password" id="firstLoginConfirmPwd" required placeholder="Повторите пароль" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-amber-500 font-mono bg-slate-50 focus:bg-white" />
+        </div>
+        <button type="submit" class="w-full mt-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-md shadow-amber-600/20 flex items-center justify-center gap-2 cursor-pointer">
+          <i data-lucide="lock" class="w-4 h-4"></i>
+          <span>Сохранить пароль и войти в контур</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Enterprise Admin Panel Modal (Панель Администратора ИБ: Реестр компании + Журнал нарушений) -->
+  <div id="adminModal" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+    <div class="w-full max-w-5xl h-[90vh] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-fade-in">
+      
+      <!-- Admin Header -->
+      <div class="p-5 sm:p-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-600/30 border border-purple-400/30 flex items-center justify-center text-purple-300">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-base sm:text-lg font-extrabold tracking-tight">Панель администратора безопасности</h2>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30 font-semibold">ТОО «ПромКонструкция»</span>
+            </div>
+            <p class="text-xs text-slate-400">Управление сотрудниками, выдача временных паролей и аудит запрещенных запросов (DLP/RBAC)</p>
+          </div>
+        </div>
+        <button onclick="closeAdminModal()" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex items-center justify-between px-6 border-b border-slate-200 bg-slate-50/80 shrink-0">
+        <div class="flex gap-2">
+          <button id="adminTabBtn-employees" onclick="switchAdminTab('employees')" class="py-3 px-4 text-xs font-bold border-b-2 border-purple-600 text-purple-700 flex items-center gap-2 transition-all">
+            <i data-lucide="users" class="w-4 h-4"></i>
+            <span>👥 Реестр сотрудников и доступов</span>
+            <span id="adminTotalUsersBadge" class="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800 font-mono">4</span>
+          </button>
+          <button id="adminTabBtn-audit" onclick="switchAdminTab('audit')" class="py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all">
+            <i data-lucide="shield-alert" class="w-4 h-4 text-rose-500"></i>
+            <span>🚨 Журнал запрещенных запросов (DLP)</span>
+            <span id="adminTotalIncidentsBadge" class="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-rose-100 text-rose-800 font-mono">2</span>
+          </button>
+        </div>
+
+        <div class="text-[11px] font-mono text-slate-400 hidden sm:block">
+          Изолированный сервер • 15 лицензий
+        </div>
+      </div>
+
+      <!-- Tab Content Area (Scrollable) -->
+      <div class="flex-1 overflow-y-auto p-5 sm:p-6 bg-slate-50/40">
+
+        <!-- TAB 1: EMPLOYEES & ACCESS -->
+        <div id="adminTabContent-employees" class="space-y-5">
+          <!-- Quick Add / Action Bar -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+            <div>
+              <h3 class="font-extrabold text-sm text-slate-900">Учётные записи сотрудников</h3>
+              <p class="text-xs text-slate-500">Администратор выдаёт временный пароль, при первом входе сотрудник обязан задать постоянный</p>
+            </div>
+            <button onclick="toggleAddEmployeeForm()" id="toggleAddEmpBtn" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-2 px-4 rounded-xl text-xs transition-all shadow-md shadow-purple-600/20 flex items-center gap-2 cursor-pointer self-start sm:self-auto">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+              <span>+ Добавить сотрудника</span>
+            </button>
+          </div>
+
+          <!-- Add Employee Collapsible Form -->
+          <div id="addEmployeeFormContainer" class="hidden bg-white p-5 rounded-2xl border-2 border-purple-200 shadow-md animate-fade-in">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="font-extrabold text-xs text-purple-900 flex items-center gap-2">
+                <i data-lucide="shield-plus" class="w-4 h-4 text-purple-600"></i> Регистрация нового сотрудника и выдача временного пароля
+              </h4>
+              <button onclick="toggleAddEmployeeForm()" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <form onsubmit="handleCreateEmployee(event)" class="space-y-3.5 text-left">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">ФИО сотрудника</label>
+                  <input type="text" id="newEmpName" required placeholder="Например: Е. К. Сарсенов" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-purple-500 bg-slate-50 focus:bg-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">Корпоративный Email / Логин</label>
+                  <input type="email" id="newEmpEmail" required placeholder="sarsenov@prom.kz" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-purple-500 font-mono bg-slate-50 focus:bg-white" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">Должность и отдел</label>
+                  <input type="text" id="newEmpDept" required placeholder="Инженер-конструктор (ПТО)" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-purple-500 bg-slate-50 focus:bg-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">Уровень допуска RBAC</label>
+                  <select id="newEmpRole" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-purple-500 bg-slate-50 font-medium">
+                    <option value="engineer">Инженер ПТО (Полный допуск: ГОСТ, КМД, Расчеты)</option>
+                    <option value="technician">Монтажник (Базовый допуск: Узлы, Монтажные схемы)</option>
+                    <option value="guest">Стажер / Гость (Ограниченный допуск: Общие регламенты)</option>
+                    <option value="admin">Администратор ИБ (Полный аудит и управление)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Временный пароль для выдачи</span>
+                    <button type="button" onclick="generateRandomPasswordForInput()" class="text-purple-600 hover:text-purple-800 text-[10px] font-mono flex items-center gap-1">
+                      <i data-lucide="refresh-cw" class="w-3 h-3"></i> Сгенерировать
+                    </button>
+                  </label>
+                  <input type="text" id="newEmpPassword" required placeholder="prom-8392" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-purple-500 font-mono font-bold bg-purple-50/50" />
+                </div>
+                <div class="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200">
+                  <input type="checkbox" id="newEmpMustChange" checked class="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500" />
+                  <label for="newEmpMustChange" class="text-xs text-slate-700 cursor-pointer">
+                    <b>Обязательная смена пароля</b> при первом входе сотрудника
+                  </label>
+                </div>
+              </div>
+
+              <div class="pt-2 flex justify-end gap-2">
+                <button type="button" onclick="toggleAddEmployeeForm()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">Отмена</button>
+                <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-5 rounded-xl text-xs transition-all shadow-sm flex items-center gap-2">
+                  <i data-lucide="check" class="w-4 h-4"></i> Выдать доступ сотруднику
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Employees Table -->
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase font-mono text-[10px]">
+                  <tr>
+                    <th class="py-3 px-4">Сотрудник</th>
+                    <th class="py-3 px-4">Email / Логин</th>
+                    <th class="py-3 px-4">Должность и отдел</th>
+                    <th class="py-3 px-4">Допуск RBAC</th>
+                    <th class="py-3 px-4">Статус пароля</th>
+                    <th class="py-3 px-4 text-right">Действия</th>
+                  </tr>
+                </thead>
+                <tbody id="employeesTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: SECURITY AUDIT & BLOCKED QUERIES LOG (КТО ЧТО СПРАШИВАЛ ЗАПРЕЩЕННОГО) -->
+        <div id="adminTabContent-audit" class="hidden space-y-4">
+          <!-- Top Stats Bar -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-lg">
+                <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-mono text-slate-400 uppercase block">Всего инцидентов</span>
+                <span id="auditStatTotal" class="text-xl font-extrabold text-slate-900 font-mono">2</span>
+              </div>
+            </div>
+
+            <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
+                <i data-lucide="shield-alert" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-mono text-slate-400 uppercase block">DLP Блокировки (Утечки)</span>
+                <span id="auditStatDlp" class="text-xl font-extrabold text-slate-900 font-mono">1</span>
+              </div>
+            </div>
+
+            <div class="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold text-lg">
+                <i data-lucide="lock" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <span class="text-[10px] font-mono text-slate-400 uppercase block">RBAC Нарушения допуска</span>
+                <span id="auditStatRbac" class="text-xl font-extrabold text-slate-900 font-mono">1</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter & Controls -->
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="relative w-full sm:w-80">
+              <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+              <input type="text" id="auditSearchInput" oninput="filterAuditLogs()" placeholder="Поиск по сотруднику или тексту запроса..." class="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-purple-500 bg-slate-50 focus:bg-white" />
+            </div>
+
+            <div class="flex items-center gap-2 self-end sm:self-auto">
+              <button onclick="exportAuditLogsCsv()" class="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors" title="Скачать журнал инцидентов для службы безопасности">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-slate-500"></i> Экспорт CSV
+              </button>
+              <button onclick="clearAuditLogs()" class="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1.5 transition-colors" title="Очистить журнал">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i> Очистить
+              </button>
+            </div>
+          </div>
+
+          <!-- Incidents Table -->
+          <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase font-mono text-[10px]">
+                  <tr>
+                    <th class="py-3 px-4">Время инцидента</th>
+                    <th class="py-3 px-4">Сотрудник</th>
+                    <th class="py-3 px-4">Запрещенный запрос</th>
+                    <th class="py-3 px-4">Категория угрозы</th>
+                    <th class="py-3 px-4">Причина блокировки</th>
+                    <th class="py-3 px-4 text-right">Действие Стража</th>
+                  </tr>
+                </thead>
+                <tbody id="auditTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <script>
     lucide.createIcons();
 
@@ -425,38 +784,174 @@
     // СИСТЕМА УПРАВЛЕНИЯ ИСТОРИЕЙ ДИАЛОГОВ (SESSIONS)
     // ==========================================
     
-    // ==========================================
-    // СИСТЕМА АВТОРИЗАЦИИ И УЧЕТНЫХ ЗАПИСЕЙ СОТРУДНИКОВ (RBAC)
-    // ==========================================
-    const AUTH_STORAGE_KEY = 'onpremise_enterprise_ai_auth_v1';
+    
+    // =========================================================================
+    // ENTERPRISE IDENTITY & DLP ACCESS CONTROL (ТОО «ПромКонструкция»)
+    // =========================================================================
+    const AUTH_STORAGE_KEY = 'prom_auth_user_session';
+    const USERS_STORAGE_KEY = 'prom_enterprise_users_v3';
+    const AUDIT_LOGS_STORAGE_KEY = 'prom_security_audit_logs_v2';
 
-    // База зарегистрированных сотрудников предприятия (15 рабочих мест)
-    const ENTERPRISE_USERS = [
+    // 1. Исходный реестр сотрудников компании
+    const DEFAULT_ENTERPRISE_USERS = [
       {
+        id: 'usr-admin',
+        email: 'admin@prom.kz',
+        password: 'admin2026',
+        name: 'С. М. Байтереков',
+        role: 'admin',
+        roleTitle: 'Администратор ИБ (Полный аудит)',
+        department: 'Служба информационной безопасности (ИБ)',
+        avatar: '🛡️',
+        mustChangePassword: false,
+        dlpRights: 'Полный аудит, управление доступом, снятие блокировок',
+        createdAt: '2026-11-01'
+      },
+      {
+        id: 'usr-pto',
         email: 'engineer@prom.kz',
         password: 'pto2026',
         name: 'Д. К. Алимов',
         role: 'engineer',
         roleTitle: 'Инженер ПТО (Полный)',
-        avatar: '👨‍💼'
+        department: 'Производственно-технический отдел (ПТО)',
+        avatar: '👨‍💼',
+        mustChangePassword: false,
+        dlpRights: 'Чертежи КМД, СП/СНиП РК, расчеты опор ОМ-1, сметы',
+        createdAt: '2026-11-05'
       },
       {
+        id: 'usr-tech',
         email: 'technician@prom.kz',
         password: 'tech2026',
         name: 'А. В. Сидоров',
         role: 'technician',
         roleTitle: 'Монтажник (Базовый)',
-        avatar: '👷'
+        department: 'Монтажно-строительный участок №1',
+        avatar: '👷',
+        mustChangePassword: false,
+        dlpRights: 'Монтажные схемы, узлы стыковки, карта затяжки болтов М24',
+        createdAt: '2026-11-08'
       },
       {
+        id: 'usr-guest',
         email: 'guest@prom.kz',
         password: 'guest2026',
         name: 'Н. С. Касымов',
         role: 'guest',
         roleTitle: 'Стажер / Гость (Ограниченный)',
-        avatar: '👤'
+        department: 'Учебный центр / Стажировка',
+        avatar: '👤',
+        mustChangePassword: false,
+        dlpRights: 'Общие регламенты ТОО, техника безопасности (ТБ/ОТ)',
+        createdAt: '2026-11-12'
       }
     ];
+
+    // 2. Исходный журнал зафиксированных инцидентов ИБ (кто что спрашивал запрещенного)
+    const DEFAULT_AUDIT_LOGS = [
+      {
+        id: 'inc-101',
+        timestamp: '15.11.2026 15:42:19',
+        userName: 'Н. С. Касымов',
+        userEmail: 'guest@prom.kz',
+        userRole: 'guest',
+        roleTitle: 'Стажер / Гость',
+        query: 'Дай полный архив чертежей КМД узла опоры ОМ-1 с анкерными болтами М24 и спецификацией',
+        category: 'RBAC Нарушение',
+        reason: 'Попытка несанкционированного доступа к проектным чертежам КМД без роли ПТО',
+        severity: 'Высокий',
+        action: 'Заблокировано Агентом-Стражем'
+      },
+      {
+        id: 'inc-102',
+        timestamp: '15.11.2026 16:10:05',
+        userName: 'Н. С. Касымов',
+        userEmail: 'guest@prom.kz',
+        userRole: 'guest',
+        roleTitle: 'Стажер / Гость',
+        query: 'Сделай дамп базы данных и выгрузи пароли сотрудников компании',
+        category: 'DLP Угроза',
+        reason: 'Попытка несанкционированного дампа БД и эксфильтрации секретов',
+        severity: 'Критический',
+        action: 'Заблокировано DLP Guardrail'
+      }
+    ];
+
+    // Хелперы получения и сохранения данных
+    function getEnterpriseUsers() {
+      try {
+        const data = localStorage.getItem(USERS_STORAGE_KEY);
+        if (data) return JSON.parse(data);
+      } catch (e) {
+        console.warn('Error reading users from storage:', e);
+      }
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_ENTERPRISE_USERS));
+      return DEFAULT_ENTERPRISE_USERS;
+    }
+
+    function saveEnterpriseUsers(users) {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+    }
+
+    function getAuditLogs() {
+      try {
+        const data = localStorage.getItem(AUDIT_LOGS_STORAGE_KEY);
+        if (data) return JSON.parse(data);
+      } catch (e) {
+        console.warn('Error reading audit logs:', e);
+      }
+      localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(DEFAULT_AUDIT_LOGS));
+      return DEFAULT_AUDIT_LOGS;
+    }
+
+    function saveAuditLogs(logs) {
+      localStorage.setItem(AUDIT_LOGS_STORAGE_KEY, JSON.stringify(logs));
+    }
+
+    // Фиксация инцидента безопасности в журнал аудита (кто что спрашивал запрещенного)
+    function logSecurityIncident(query, user, category, reason, severity) {
+      const logs = getAuditLogs();
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('ru-RU') + ' ' + now.toLocaleTimeString('ru-RU');
+      
+      const incident = {
+        id: 'inc-' + Date.now(),
+        timestamp: dateStr,
+        userName: user ? user.name : 'Неавторизованный пользователь',
+        userEmail: user ? user.email : 'unknown@prom.kz',
+        userRole: user ? user.role : 'guest',
+        roleTitle: user ? user.roleTitle : 'Гость',
+        query: query,
+        category: category || 'DLP Нарушение',
+        reason: reason || 'Запрос заблокирован политикой безопасности',
+        severity: severity || 'Высокий',
+        action: 'Заблокировано Агентом-Стражем'
+      };
+
+      logs.unshift(incident);
+      saveAuditLogs(logs);
+      updateIncidentBadge();
+
+      // Если открыта вкладка аудита в админке - обновим таблицу на лету
+      const auditTab = document.getElementById('adminTabContent-audit');
+      if (auditTab && !auditTab.classList.contains('hidden')) {
+        renderSecurityAuditTable();
+      }
+    }
+
+    function updateIncidentBadge() {
+      const logs = getAuditLogs();
+      const badge = document.getElementById('incidentBadge');
+      if (badge) {
+        badge.innerText = logs.length;
+        badge.classList.remove('hidden');
+      }
+      const adminAuditBadge = document.getElementById('adminTotalIncidentsBadge');
+      if (adminAuditBadge) {
+        adminAuditBadge.innerText = logs.length;
+      }
+    }
 
     let currentAuthUser = null;
 
@@ -470,12 +965,17 @@
         console.warn('Auth read error:', e);
       }
 
+      // Убедимся, что пользователи и аудит инициализированы
+      getEnterpriseUsers();
+      updateIncidentBadge();
+
       const modal = document.getElementById('loginModal');
       if (!modal) return;
 
       if (currentAuthUser) {
         applyAuthenticatedUser(currentAuthUser);
         modal.classList.add('hidden');
+        checkMustChangePassword(currentAuthUser);
       } else {
         modal.classList.remove('hidden');
       }
@@ -483,11 +983,72 @@
 
     function applyAuthenticatedUser(user) {
       currentAuthUser = user;
-      document.getElementById('userName').innerText = user.name;
-      document.getElementById('userRoleTitle').innerText = user.roleTitle;
-      document.getElementById('userAvatar').innerText = user.avatar;
-      document.getElementById('userRole').value = user.role;
+      const userNameEl = document.getElementById('userName');
+      const userRoleTitleEl = document.getElementById('userRoleTitle');
+      const userAvatarEl = document.getElementById('userAvatar');
+      const userRoleInput = document.getElementById('userRole');
+
+      if (userNameEl) userNameEl.innerText = user.name;
+      if (userRoleTitleEl) userRoleTitleEl.innerText = user.roleTitle;
+      if (userAvatarEl) userAvatarEl.innerText = user.avatar;
+      if (userRoleInput) userRoleInput.value = user.role;
+
+      // Показываем кнопку админки с особым акцентом, если вошел администратор
+      const adminBtn = document.getElementById('adminPanelHeaderBtn');
+      if (adminBtn) {
+        if (user.role === 'admin') {
+          adminBtn.classList.add('ring-2', 'ring-purple-400', 'font-extrabold');
+        } else {
+          adminBtn.classList.remove('ring-2', 'ring-purple-400', 'font-extrabold');
+        }
+      }
+
       lucide.createIcons();
+    }
+
+    // Проверка обязательной смены временного пароля
+    function checkMustChangePassword(user) {
+      if (user && user.mustChangePassword) {
+        const mustModal = document.getElementById('mustChangePasswordModal');
+        if (mustModal) {
+          mustModal.classList.remove('hidden');
+          lucide.createIcons();
+        }
+      }
+    }
+
+    function handleMustChangePasswordSubmit(event) {
+      event.preventDefault();
+      const p1 = document.getElementById('firstLoginNewPwd').value;
+      const p2 = document.getElementById('firstLoginConfirmPwd').value;
+      const alertDiv = document.getElementById('mustChangeAlert');
+
+      if (!p1 || p1.length < 5) {
+        alertDiv.innerText = 'Пароль должен содержать минимум 5 символов';
+        alertDiv.classList.remove('hidden');
+        return;
+      }
+      if (p1 !== p2) {
+        alertDiv.innerText = 'Введенные пароли не совпадают';
+        alertDiv.classList.remove('hidden');
+        return;
+      }
+
+      // Обновляем пароль в реестре пользователей
+      const users = getEnterpriseUsers();
+      const userIndex = users.findIndex(u => u.email.toLowerCase() === currentAuthUser.email.toLowerCase());
+      if (userIndex !== -1) {
+        users[userIndex].password = p1;
+        users[userIndex].mustChangePassword = false;
+        saveEnterpriseUsers(users);
+
+        currentAuthUser.password = p1;
+        currentAuthUser.mustChangePassword = false;
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentAuthUser));
+      }
+
+      document.getElementById('mustChangePasswordModal').classList.add('hidden');
+      showEnterpriseToast('🔐 Постоянный личный пароль успешно установлен. Добро пожаловать в контур!');
     }
 
     function fillLoginCredentials(email, password) {
@@ -502,23 +1063,509 @@
     // Мгновенный вход в 1 клик по карточке сотрудника
     function quickLogin(email, password) {
       fillLoginCredentials(email, password);
-      const foundUser = ENTERPRISE_USERS.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+      const users = getEnterpriseUsers();
+      const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
       if (foundUser) {
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(foundUser));
         applyAuthenticatedUser(foundUser);
         const modal = document.getElementById('loginModal');
         if (modal) modal.classList.add('hidden');
 
-        // Toast
-        const toast = document.createElement('div');
-        toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs animate-fade-in border border-slate-700';
-        toast.innerHTML = `<span class="text-base">${foundUser.avatar}</span><span>Вход выполнен: <b>${foundUser.name}</b> (${foundUser.roleTitle})</span>`;
-        document.body.appendChild(toast);
-        lucide.createIcons();
-        setTimeout(() => toast.remove(), 3500);
+        showEnterpriseToast(`${foundUser.avatar} Вход выполнен: <b>${foundUser.name}</b> (${foundUser.roleTitle})`);
+        checkMustChangePassword(foundUser);
+      } else {
+        const errorDiv = document.getElementById('loginError');
+        if (errorDiv) {
+          errorDiv.classList.remove('hidden');
+          document.getElementById('loginErrorText').innerText = 'Неверный логин или пароль';
+        }
       }
     }
 
+    function togglePasswordVisibility() {
+      const passInput = document.getElementById('loginPassword');
+      const icon = document.getElementById('passwordEyeIcon');
+      if (passInput.type === 'password') {
+        passInput.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        passInput.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+      }
+      lucide.createIcons();
+    }
+
+    function handleLoginSubmit(event) {
+      event.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errorDiv = document.getElementById('loginError');
+      const errorText = document.getElementById('loginErrorText');
+
+      const users = getEnterpriseUsers();
+      const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+
+      if (foundUser) {
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(foundUser));
+        applyAuthenticatedUser(foundUser);
+        document.getElementById('loginModal').classList.add('hidden');
+        if (errorDiv) errorDiv.classList.add('hidden');
+        showEnterpriseToast(`${foundUser.avatar} Авторизован: <b>${foundUser.name}</b>`);
+        checkMustChangePassword(foundUser);
+      } else {
+        if (errorDiv) {
+          errorDiv.classList.remove('hidden');
+          errorText.innerText = 'Неверный логин или пароль сотрудника ТОО';
+        }
+      }
+    }
+
+    function logoutUser() {
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      currentAuthUser = null;
+      closeProfileModal();
+      closeAdminModal();
+      const modal = document.getElementById('loginModal');
+      if (modal) modal.classList.remove('hidden');
+      showEnterpriseToast('Вы вышли из закрытого контура предприятия');
+    }
+
+    function showEnterpriseToast(htmlContent) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs animate-fade-in border border-slate-700';
+      toast.innerHTML = htmlContent;
+      document.body.appendChild(toast);
+      lucide.createIcons();
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    // =========================================================================
+    // ПРОФИЛЬ СОТРУДНИКА (СМЕНА ПАРОЛЯ СОТРУДНИКОМ - ВАРИАНТ 2)
+    // =========================================================================
+    function openProfileModal() {
+      if (!currentAuthUser) {
+        initAuth();
+        return;
+      }
+
+      document.getElementById('profileModalAvatar').innerText = currentAuthUser.avatar || '👤';
+      document.getElementById('profileModalName').innerText = currentAuthUser.name;
+      document.getElementById('profileModalRoleBadge').innerText = currentAuthUser.roleTitle;
+      document.getElementById('profileModalEmail').innerText = currentAuthUser.email;
+      document.getElementById('profileModalDept').innerText = currentAuthUser.department || 'ТОО «ПромКонструкция»';
+      document.getElementById('profileModalDlpRights').innerText = currentAuthUser.dlpRights || 'Согласно политике RBAC';
+
+      const pwdStatusEl = document.getElementById('profileModalPwdStatus');
+      if (currentAuthUser.mustChangePassword) {
+        pwdStatusEl.className = 'font-semibold text-amber-600 flex items-center gap-1';
+        pwdStatusEl.innerHTML = '<i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Временный (требуется смена)';
+      } else {
+        pwdStatusEl.className = 'font-semibold text-emerald-600 flex items-center gap-1';
+        pwdStatusEl.innerHTML = '<i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Постоянный личный';
+      }
+
+      // Очистка полей и алертов
+      document.getElementById('currentPwdInput').value = '';
+      document.getElementById('newPwdInput').value = '';
+      document.getElementById('confirmPwdInput').value = '';
+      const alertDiv = document.getElementById('profilePwdAlert');
+      alertDiv.className = 'hidden mb-3 p-3 rounded-xl text-xs flex items-center gap-2';
+      alertDiv.innerHTML = '';
+
+      document.getElementById('profileModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profileModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function handleProfilePasswordChange(event) {
+      event.preventDefault();
+      const currentPwd = document.getElementById('currentPwdInput').value;
+      const newPwd = document.getElementById('newPwdInput').value;
+      const confirmPwd = document.getElementById('confirmPwdInput').value;
+      const alertDiv = document.getElementById('profilePwdAlert');
+
+      if (currentPwd !== currentAuthUser.password) {
+        alertDiv.className = 'mb-3 p-3 rounded-xl text-xs flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700';
+        alertDiv.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i> <span>Текущий пароль указан неверно</span>';
+        lucide.createIcons();
+        return;
+      }
+
+      if (!newPwd || newPwd.length < 5) {
+        alertDiv.className = 'mb-3 p-3 rounded-xl text-xs flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700';
+        alertDiv.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i> <span>Новый пароль должен содержать минимум 5 символов</span>';
+        lucide.createIcons();
+        return;
+      }
+
+      if (newPwd !== confirmPwd) {
+        alertDiv.className = 'mb-3 p-3 rounded-xl text-xs flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700';
+        alertDiv.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i> <span>Новый пароль и подтверждение не совпадают</span>';
+        lucide.createIcons();
+        return;
+      }
+
+      // Успешное обновление пароля
+      const users = getEnterpriseUsers();
+      const uIndex = users.findIndex(u => u.email.toLowerCase() === currentAuthUser.email.toLowerCase());
+      if (uIndex !== -1) {
+        users[uIndex].password = newPwd;
+        users[uIndex].mustChangePassword = false;
+        saveEnterpriseUsers(users);
+
+        currentAuthUser.password = newPwd;
+        currentAuthUser.mustChangePassword = false;
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentAuthUser));
+      }
+
+      alertDiv.className = 'mb-3 p-3 rounded-xl text-xs flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700';
+      alertDiv.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 shrink-0"></i> <span>Пароль успешно изменён и сохранён в зашифрованном реестре!</span>';
+      lucide.createIcons();
+
+      // Обновляем статус
+      const pwdStatusEl = document.getElementById('profileModalPwdStatus');
+      pwdStatusEl.className = 'font-semibold text-emerald-600 flex items-center gap-1';
+      pwdStatusEl.innerHTML = '<i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Постоянный личный';
+
+      document.getElementById('currentPwdInput').value = '';
+      document.getElementById('newPwdInput').value = '';
+      document.getElementById('confirmPwdInput').value = '';
+
+      showEnterpriseToast('🔑 Ваш пароль успешно обновлён!');
+    }
+
+    // =========================================================================
+    // АДМИН-ПАНЕЛЬ ИБ (РЕЕСТР СОТРУДНИКОВ + ЖУРНАЛ ЗАПРЕЩЕННЫХ ЗАПРОСОВ)
+    // =========================================================================
+    function openAdminModal() {
+      renderEmployeesTable();
+      renderSecurityAuditTable();
+      document.getElementById('adminModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeAdminModal() {
+      const modal = document.getElementById('adminModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function switchAdminTab(tabName) {
+      const btnEmp = document.getElementById('adminTabBtn-employees');
+      const btnAudit = document.getElementById('adminTabBtn-audit');
+      const tabEmp = document.getElementById('adminTabContent-employees');
+      const tabAudit = document.getElementById('adminTabContent-audit');
+
+      if (tabName === 'employees') {
+        btnEmp.className = 'py-3 px-4 text-xs font-bold border-b-2 border-purple-600 text-purple-700 flex items-center gap-2 transition-all';
+        btnAudit.className = 'py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all';
+        tabEmp.classList.remove('hidden');
+        tabAudit.classList.add('hidden');
+        renderEmployeesTable();
+      } else {
+        btnAudit.className = 'py-3 px-4 text-xs font-bold border-b-2 border-purple-600 text-purple-700 flex items-center gap-2 transition-all';
+        btnEmp.className = 'py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all';
+        tabEmp.classList.add('hidden');
+        tabAudit.classList.remove('hidden');
+        renderSecurityAuditTable();
+      }
+      lucide.createIcons();
+    }
+
+    function toggleAddEmployeeForm() {
+      const formContainer = document.getElementById('addEmployeeFormContainer');
+      formContainer.classList.toggle('hidden');
+      if (!formContainer.classList.contains('hidden')) {
+        generateRandomPasswordForInput();
+      }
+      lucide.createIcons();
+    }
+
+    function generateRandomPasswordForInput() {
+      const randomDigits = Math.floor(1000 + Math.random() * 9000);
+      const generated = 'prom-' + randomDigits;
+      document.getElementById('newEmpPassword').value = generated;
+    }
+
+    // Обработка создания нового сотрудника администратором
+    function handleCreateEmployee(event) {
+      event.preventDefault();
+      const name = document.getElementById('newEmpName').value.trim();
+      const email = document.getElementById('newEmpEmail').value.trim();
+      const dept = document.getElementById('newEmpDept').value.trim();
+      const role = document.getElementById('newEmpRole').value;
+      const password = document.getElementById('newEmpPassword').value.trim();
+      const mustChange = document.getElementById('newEmpMustChange').checked;
+
+      const users = getEnterpriseUsers();
+      if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+        alert('Сотрудник с таким Email уже зарегистрирован в системе!');
+        return;
+      }
+
+      let avatar = '👨‍💼';
+      let roleTitle = 'Инженер ПТО (Полный)';
+      let dlpRights = 'ГОСТы, КМД, Расчеты опор ОМ-1';
+
+      if (role === 'technician') {
+        avatar = '👷';
+        roleTitle = 'Монтажник (Базовый)';
+        dlpRights = 'Монтажные схемы, узлы, карта болтов М24';
+      } else if (role === 'guest') {
+        avatar = '👤';
+        roleTitle = 'Стажер / Гость (Ограниченный)';
+        dlpRights = 'Общие регламенты, без доступа к КМД и расчетам';
+      } else if (role === 'admin') {
+        avatar = '🛡️';
+        roleTitle = 'Администратор ИБ (Полный аудит)';
+        dlpRights = 'Полный аудит, реестр, снятие блокировок';
+      }
+
+      const newUser = {
+        id: 'usr-' + Date.now(),
+        email: email,
+        password: password,
+        name: name,
+        role: role,
+        roleTitle: roleTitle,
+        department: dept,
+        avatar: avatar,
+        mustChangePassword: mustChange,
+        dlpRights: dlpRights,
+        createdAt: new Date().toLocaleDateString('ru-RU')
+      };
+
+      users.push(newUser);
+      saveEnterpriseUsers(users);
+
+      renderEmployeesTable();
+      toggleAddEmployeeForm();
+
+      showEnterpriseToast(`✅ Сотрудник <b>${name}</b> зарегистрирован! Временный пароль: <b>${password}</b>`);
+      alert(`Сотрудник успешно создан!
+
+ФИО: ${name}
+Email/Логин: ${email}
+Временный пароль: ${password}
+Обязательная смена пароля: ${mustChange ? 'Да (при первом входе)' : 'Нет'}
+
+Передайте эти учетные данные сотруднику.`);
+    }
+
+    function resetEmployeePassword(email) {
+      const users = getEnterpriseUsers();
+      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (!user) return;
+
+      const newTempPassword = 'prom-' + Math.floor(1000 + Math.random() * 9000);
+      user.password = newTempPassword;
+      user.mustChangePassword = true;
+      saveEnterpriseUsers(users);
+      renderEmployeesTable();
+
+      alert(`Временный пароль для ${user.name} успешно сброшен!
+
+Новый временный пароль: ${newTempPassword}
+
+Сотрудник обязан будет сменить его на личный при следующем входе.`);
+    }
+
+    function deleteEmployee(email) {
+      if (email === 'admin@prom.kz') {
+        alert('Главного администратора безопасности нельзя удалить!');
+        return;
+      }
+      if (!confirm(`Вы действительно хотите отозвать доступ и удалить сотрудника ${email}?`)) {
+        return;
+      }
+      let users = getEnterpriseUsers();
+      users = users.filter(u => u.email.toLowerCase() !== email.toLowerCase());
+      saveEnterpriseUsers(users);
+      renderEmployeesTable();
+      showEnterpriseToast('Сотрудник удален из реестра предприятия');
+    }
+
+    // Отрисовка таблицы сотрудников компании
+    function renderEmployeesTable() {
+      const users = getEnterpriseUsers();
+      const tbody = document.getElementById('employeesTableBody');
+      const badgeCount = document.getElementById('adminTotalUsersBadge');
+      if (badgeCount) badgeCount.innerText = users.length;
+
+      if (!tbody) return;
+
+      let html = '';
+      users.forEach(u => {
+        let roleBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-sky-50 text-sky-700 border border-sky-200 font-semibold">Инженер ПТО</span>';
+        if (u.role === 'technician') {
+          roleBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold">Монтажник</span>';
+        } else if (u.role === 'guest') {
+          roleBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200 font-semibold">Стажер / Гость</span>';
+        } else if (u.role === 'admin') {
+          roleBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-50 text-purple-700 border border-purple-200 font-semibold">Администратор ИБ</span>';
+        }
+
+        let pwdBadge = '<span class="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Личный пароль</span>';
+        if (u.mustChangePassword) {
+          pwdBadge = `<span class="inline-flex items-center gap-1 text-[11px] text-amber-600 font-semibold" title="Пароль: ${u.password}"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Временный (${u.password})</span>`;
+        }
+
+        html += `
+          <tr class="hover:bg-slate-50/70 transition-colors">
+            <td class="py-3 px-4">
+              <div class="flex items-center gap-2.5">
+                <span class="text-base">${u.avatar || '👤'}</span>
+                <div>
+                  <div class="font-bold text-slate-900">${u.name}</div>
+                  <div class="text-[10px] text-slate-400 font-mono">ID: ${u.id || 'usr'}</div>
+                </div>
+              </div>
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-600">${u.email}</td>
+            <td class="py-3 px-4 text-slate-600">${u.department || 'ТОО «ПромКонструкция»'}</td>
+            <td class="py-3 px-4">${roleBadge}</td>
+            <td class="py-3 px-4">${pwdBadge}</td>
+            <td class="py-3 px-4 text-right">
+              <div class="inline-flex items-center gap-1.5">
+                <button onclick="resetEmployeePassword('${u.email}')" class="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-bold border border-amber-200 transition-colors flex items-center gap-1" title="Сбросить на временный пароль">
+                  <i data-lucide="key" class="w-3 h-3"></i> Сбросить
+                </button>
+                <button onclick="deleteEmployee('${u.email}')" class="p-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-colors" title="Отозвать доступ">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    // Отрисовка таблицы запрещенных запросов (Журнал аудита ИБ)
+    function renderSecurityAuditTable(searchQuery = '') {
+      const logs = getAuditLogs();
+      const tbody = document.getElementById('auditTableBody');
+      const statTotal = document.getElementById('auditStatTotal');
+      const statDlp = document.getElementById('auditStatDlp');
+      const statRbac = document.getElementById('auditStatRbac');
+
+      if (statTotal) statTotal.innerText = logs.length;
+      if (statDlp) statDlp.innerText = logs.filter(l => l.category.includes('DLP')).length;
+      if (statRbac) statRbac.innerText = logs.filter(l => l.category.includes('RBAC')).length;
+
+      if (!tbody) return;
+
+      let filtered = logs;
+      if (searchQuery) {
+        const sq = searchQuery.toLowerCase();
+        filtered = logs.filter(l => 
+          l.query.toLowerCase().includes(sq) ||
+          l.userName.toLowerCase().includes(sq) ||
+          l.userEmail.toLowerCase().includes(sq) ||
+          l.reason.toLowerCase().includes(sq)
+        );
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-8 text-center text-slate-400 text-xs">
+              Нарушений безопасности не зафиксировано
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(item => {
+        let catBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-rose-50 text-rose-700 border border-rose-200 font-semibold">🚨 ' + item.category + '</span>';
+        if (item.category.includes('RBAC')) {
+          catBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-50 text-amber-700 border border-amber-200 font-semibold">🔒 ' + item.category + '</span>';
+        }
+
+        html += `
+          <tr class="hover:bg-slate-50/70 transition-colors">
+            <td class="py-3 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">${item.timestamp}</td>
+            <td class="py-3 px-4">
+              <div class="font-bold text-slate-900">${item.userName}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${item.userEmail} (${item.roleTitle || item.userRole})</div>
+            </td>
+            <td class="py-3 px-4 font-mono text-slate-800 text-[11px] max-w-xs break-words bg-rose-50/40 rounded-lg p-2 border border-rose-100">
+              <span class="text-rose-700 font-bold">«${item.query}»</span>
+            </td>
+            <td class="py-3 px-4">${catBadge}</td>
+            <td class="py-3 px-4 text-xs text-slate-600">${item.reason}</td>
+            <td class="py-3 px-4 text-right">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                🛑 Заблокировано
+              </span>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function filterAuditLogs() {
+      const q = document.getElementById('auditSearchInput').value;
+      renderSecurityAuditTable(q);
+    }
+
+    function clearAuditLogs() {
+      if (!confirm('Вы уверены, что хотите очистить журнал аудита безопасности?')) return;
+      saveAuditLogs([]);
+      renderSecurityAuditTable();
+      updateIncidentBadge();
+      showEnterpriseToast('Журнал аудита безопасности очищен');
+    }
+
+    function exportAuditLogsCsv() {
+      const logs = getAuditLogs();
+      if (!logs.length) {
+        alert('Журнал инцидентов пуст!');
+        return;
+      }
+
+      let csv = '\uFEFF"Время";"Сотрудник";"Email";"Роль";"Запрещенный запрос";"Категория";"Причина блокировки";"Статус"\n';
+      logs.forEach(l => {
+        const cleanQuery = (l.query || '').replace(/"/g, '""');
+        const cleanReason = (l.reason || '').replace(/"/g, '""');
+        csv += `"${l.timestamp}";"${l.userName}";"${l.userEmail}";"${l.roleTitle}";"${cleanQuery}";"${l.category}";"${cleanReason}";"${l.action}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit_security_log_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Expose all admin & profile handlers to window
+    window.openProfileModal = openProfileModal;
+    window.closeProfileModal = closeProfileModal;
+    window.handleProfilePasswordChange = handleProfilePasswordChange;
+    window.openAdminModal = openAdminModal;
+    window.closeAdminModal = closeAdminModal;
+    window.switchAdminTab = switchAdminTab;
+    window.toggleAddEmployeeForm = toggleAddEmployeeForm;
+    window.generateRandomPasswordForInput = generateRandomPasswordForInput;
+    window.handleCreateEmployee = handleCreateEmployee;
+    window.resetEmployeePassword = resetEmployeePassword;
+    window.deleteEmployee = deleteEmployee;
+    window.filterAuditLogs = filterAuditLogs;
+    window.clearAuditLogs = clearAuditLogs;
+    window.exportAuditLogsCsv = exportAuditLogsCsv;
+    window.handleMustChangePasswordSubmit = handleMustChangePasswordSubmit;
     window.quickLogin = quickLogin;
     window.fillLoginCredentials = fillLoginCredentials;
     window.handleLoginSubmit = handleLoginSubmit;
@@ -1132,15 +2179,17 @@
 
       // 1. Агент-Страж (DLP Guardrail)
       if (qLower.includes('дамп') || qLower.includes('dump') || qLower.includes('слив базы') || qLower.includes('экспорт бд')) {
+        logSecurityIncident(query, currentAuthUser, 'DLP Угроза', 'Попытка несанкционированного дампа БД и эксфильтрации данных', 'Критический');
         return {
           success: false,
           sentinel_log: 'Запрос заблокирован DLP: Несанкционированный дамп БД',
           worker_log: 'Отклонено',
-          ceo_report: '🚨 **ОТКАЗ В ОБРАБОТКЕ (DLP Безопасность ТОО)**\n\nЗапрос классифицирован как потенциальная угроза безопасности предприятия.\n\n_Лог инцидента зафиксирован в журнале аудита безопасности предприятия._'
+          ceo_report: '🚨 **ОТКАЗ В ОБРАБОТКЕ (DLP Безопасность ТОО)**\n\nЗапрос классифицирован как потенциальная угроза безопасности предприятия (Попытка дампа/слива данных).\n\n_Лог инцидента зафиксирован в журнале аудита безопасности предприятия._'
         };
       }
 
       if (qLower.includes('парол') || qLower.includes('password') || qLower.includes('api_key') || qLower.includes('secret')) {
+        logSecurityIncident(query, currentAuthUser, 'DLP Угроза', 'Попытка извлечения паролей сотрудников или API-ключей', 'Критический');
         return {
           success: false,
           sentinel_log: 'Запрос заблокирован DLP: Раскрытие паролей и секретов',
