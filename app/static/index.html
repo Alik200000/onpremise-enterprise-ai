@@ -76,14 +76,17 @@
     </div>
 
     <div class="flex items-center gap-3.5">
-      <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-sky-600"></i>
-        <span class="text-xs text-slate-500 hidden md:inline font-medium">Уровень доступа:</span>
-        <select id="userRole" class="bg-transparent text-xs text-sky-700 font-semibold focus:outline-none cursor-pointer">
-          <option value="engineer">Инженер ПТО (Полный)</option>
-          <option value="technician">Монтажник (Базовый)</option>
-          <option value="guest">Гость / Стажер (Ограниченный)</option>
-        </select>
+      <!-- Authenticated User Profile Badge -->
+      <div id="userProfileBadge" class="flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs shadow-xs">
+        <span id="userAvatar" class="text-base select-none">👨‍💼</span>
+        <div class="flex flex-col text-left">
+          <span id="userName" class="font-bold text-slate-900 leading-tight">Д. К. Алимов</span>
+          <span id="userRoleTitle" class="text-[10px] text-sky-700 font-mono font-semibold">Инженер ПТО (Полный)</span>
+        </div>
+        <input type="hidden" id="userRole" value="engineer" />
+        <button onclick="logoutUser()" class="ml-1 text-slate-400 hover:text-rose-600 transition-colors p-1 rounded-lg hover:bg-slate-100" title="Выйти из учетной записи">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+        </button>
       </div>
 
       <div class="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-600 font-mono">
@@ -319,6 +322,129 @@
     // ==========================================
     // СИСТЕМА УПРАВЛЕНИЯ ИСТОРИЕЙ ДИАЛОГОВ (SESSIONS)
     // ==========================================
+    
+    // ==========================================
+    // СИСТЕМА АВТОРИЗАЦИИ И УЧЕТНЫХ ЗАПИСЕЙ СОТРУДНИКОВ (RBAC)
+    // ==========================================
+    const AUTH_STORAGE_KEY = 'onpremise_enterprise_ai_auth_v1';
+
+    // База зарегистрированных сотрудников предприятия (15 рабочих мест)
+    const ENTERPRISE_USERS = [
+      {
+        email: 'engineer@prom.kz',
+        password: 'pto2026',
+        name: 'Д. К. Алимов',
+        role: 'engineer',
+        roleTitle: 'Инженер ПТО (Полный)',
+        avatar: '👨‍💼'
+      },
+      {
+        email: 'technician@prom.kz',
+        password: 'tech2026',
+        name: 'А. В. Сидоров',
+        role: 'technician',
+        roleTitle: 'Монтажник (Базовый)',
+        avatar: '👷'
+      },
+      {
+        email: 'guest@prom.kz',
+        password: 'guest2026',
+        name: 'Н. С. Касымов',
+        role: 'guest',
+        roleTitle: 'Стажер / Гость (Ограниченный)',
+        avatar: '👤'
+      }
+    ];
+
+    let currentAuthUser = null;
+
+    function initAuth() {
+      try {
+        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (stored) {
+          currentAuthUser = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn('Auth read error:', e);
+      }
+
+      if (currentAuthUser) {
+        applyAuthenticatedUser(currentAuthUser);
+        document.getElementById('loginModal').classList.add('hidden');
+      } else {
+        document.getElementById('loginModal').classList.remove('hidden');
+      }
+    }
+
+    function applyAuthenticatedUser(user) {
+      currentAuthUser = user;
+      document.getElementById('userName').innerText = user.name;
+      document.getElementById('userRoleTitle').innerText = user.roleTitle;
+      document.getElementById('userAvatar').innerText = user.avatar;
+      document.getElementById('userRole').value = user.role;
+      lucide.createIcons();
+    }
+
+    function fillLoginCredentials(email, password) {
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginPassword').value = password;
+      const errorDiv = document.getElementById('loginError');
+      if (errorDiv) errorDiv.classList.add('hidden');
+    }
+
+    function togglePasswordVisibility() {
+      const passInput = document.getElementById('loginPassword');
+      const icon = document.getElementById('passwordEyeIcon');
+      if (passInput.type === 'password') {
+        passInput.type = 'text';
+        icon.setAttribute('data-lucide', 'eye-off');
+      } else {
+        passInput.type = 'password';
+        icon.setAttribute('data-lucide', 'eye');
+      }
+      lucide.createIcons();
+    }
+
+    function handleLoginSubmit(event) {
+      event.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value.trim();
+      const errorDiv = document.getElementById('loginError');
+      const errorText = document.getElementById('loginErrorText');
+
+      const foundUser = ENTERPRISE_USERS.find(u => u.email.toLowerCase() === email && u.password === password);
+
+      if (foundUser) {
+        errorDiv.classList.add('hidden');
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(foundUser));
+        applyAuthenticatedUser(foundUser);
+        document.getElementById('loginModal').classList.add('hidden');
+
+        // Показ уведомления о входе
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs animate-fade-in border border-slate-700';
+        toast.innerHTML = `<span class="text-base">${foundUser.avatar}</span><span>Успешный вход: <b>${foundUser.name}</b> (${foundUser.roleTitle})</span>`;
+        document.body.appendChild(toast);
+        lucide.createIcons();
+        setTimeout(() => toast.remove(), 3500);
+      } else {
+        errorDiv.classList.remove('hidden');
+        errorText.innerText = 'Неверный email или пароль сотрудника. Используйте тестовые данные ниже.';
+      }
+    }
+
+    function logoutUser() {
+      if (!confirm('Вы действительно хотите выйти из системы?')) return;
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+      currentAuthUser = null;
+      document.getElementById('loginModal').classList.remove('hidden');
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+      const errorDiv = document.getElementById('loginError');
+      if (errorDiv) errorDiv.classList.add('hidden');
+      lucide.createIcons();
+    }
+
     const SESSIONS_STORAGE_KEY = 'onpremise_enterprise_ai_sessions_v2';
     let chatSessions = [];
     let currentSessionId = null;
@@ -629,6 +755,7 @@
     }
     renderKnowledgeBase();
     loadSessionsFromStorage();
+    initAuth();
     loadChatSession(currentSessionId);
 
     document.getElementById('uploadBtn').addEventListener('click', () => {
@@ -649,6 +776,7 @@
         });
         renderKnowledgeBase();
     loadSessionsFromStorage();
+    initAuth();
     loadChatSession(currentSessionId);
         btn.disabled = false;
         btn.innerHTML = `<i data-lucide="upload" class="w-3.5 h-3.5"></i> Индексировать в векторную БД`;
@@ -1279,6 +1407,107 @@
         </button>
       </div>
       <div class="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-1" id="mobileSessionsList"></div>
+    </div>
+  </div>
+  <!-- Fullscreen Enterprise Login Modal (Строгий вход по требованиям ТОО) -->
+  <div id="loginModal" class="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 p-7 sm:p-8 text-center animate-fade-in relative overflow-hidden">
+      <!-- Glow decoration -->
+      <div class="absolute -top-24 -left-24 w-48 h-48 bg-sky-400/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="relative z-10">
+        <!-- Logo -->
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-500 via-blue-600 to-indigo-600 text-white flex items-center justify-center mx-auto mb-3 shadow-lg shadow-sky-500/25 text-xl font-bold font-mono">
+          AI
+        </div>
+
+        <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">On-Premise Enterprise AI</h2>
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 mt-1 mb-5 rounded-full text-[10px] font-mono bg-sky-50 text-sky-700 border border-sky-200 font-semibold">
+          <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span> ТОО «ПромКонструкция» • Изолированный контур
+        </div>
+
+        <!-- Error Alert -->
+        <div id="loginError" class="hidden mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs text-left flex items-center gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 text-rose-600"></i>
+          <span id="loginErrorText">Неверный логин или пароль</span>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" onsubmit="handleLoginSubmit(event)" class="space-y-3.5 text-left">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+              <i data-lucide="mail" class="w-3.5 h-3.5 text-sky-600"></i> Корпоративный Email / Логин
+            </label>
+            <input type="email" id="loginEmail" required placeholder="engineer@prom.kz" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-sky-500 bg-slate-50 focus:bg-white transition-all font-mono" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+              <i data-lucide="lock" class="w-3.5 h-3.5 text-sky-600"></i> Пароль сотрудника
+            </label>
+            <div class="relative">
+              <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-sky-500 bg-slate-50 focus:bg-white transition-all font-mono" />
+              <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 p-0.5">
+                <i data-lucide="eye" id="passwordEyeIcon" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" id="loginBtn" class="w-full mt-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-all shadow-md shadow-sky-600/20 flex items-center justify-center gap-2 cursor-pointer">
+            <span>Войти в закрытый контур</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </form>
+
+        <!-- Pre-configured test accounts -->
+        <div class="mt-5 pt-4 border-t border-slate-100 text-left">
+          <div class="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-2 font-bold flex items-center gap-1.5">
+            <i data-lucide="key" class="w-3 h-3 text-sky-600"></i> Тестовые аккаунты сотрудников (кликните для подстановки):
+          </div>
+          <div class="space-y-1.5 text-xs">
+            <!-- Engineer -->
+            <div onclick="fillLoginCredentials('engineer@prom.kz', 'pto2026')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-sky-50/80 border border-slate-200 hover:border-sky-300 cursor-pointer transition-all flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm">👨‍💼</span>
+                <div>
+                  <div class="font-bold text-slate-800 text-[11px]">Д. К. Алимов (Инженер ПТО)</div>
+                  <div class="text-[10px] font-mono text-slate-500">engineer@prom.kz • pto2026</div>
+                </div>
+              </div>
+              <span class="text-[9px] font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-semibold">Полный</span>
+            </div>
+
+            <!-- Technician -->
+            <div onclick="fillLoginCredentials('technician@prom.kz', 'tech2026')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-sky-50/80 border border-slate-200 hover:border-sky-300 cursor-pointer transition-all flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm">👷</span>
+                <div>
+                  <div class="font-bold text-slate-800 text-[11px]">А. В. Сидоров (Монтажник)</div>
+                  <div class="text-[10px] font-mono text-slate-500">technician@prom.kz • tech2026</div>
+                </div>
+              </div>
+              <span class="text-[9px] font-mono bg-sky-50 text-sky-700 border border-sky-200 px-1.5 py-0.5 rounded font-semibold">Базовый</span>
+            </div>
+
+            <!-- Guest -->
+            <div onclick="fillLoginCredentials('guest@prom.kz', 'guest2026')" class="p-2.5 rounded-xl bg-slate-50 hover:bg-sky-50/80 border border-slate-200 hover:border-sky-300 cursor-pointer transition-all flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm">👤</span>
+                <div>
+                  <div class="font-bold text-slate-800 text-[11px]">Н. С. Касымов (Стажер / Гость)</div>
+                  <div class="text-[10px] font-mono text-slate-500">guest@prom.kz • guest2026</div>
+                </div>
+              </div>
+              <span class="text-[9px] font-mono bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.5 rounded font-semibold">Ограниченный</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-[10px] text-slate-400 font-mono mt-3 text-center">
+          🔒 DLP Air-Gapped RBAC • 15 рабочих мест ТОО «ПромКонструкция»
+        </div>
+      </div>
     </div>
   </div>
 </body>
