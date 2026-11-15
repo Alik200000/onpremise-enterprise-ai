@@ -268,7 +268,7 @@
         <!-- Attachment preview chip -->
         <div id="attachmentPreview" class="hidden max-w-4xl mx-auto mb-2.5 flex items-center gap-2 flex-wrap"></div>
 
-        <form id="chatForm" class="max-w-4xl mx-auto flex gap-2 sm:gap-3 items-center">
+        <form id="chatForm" novalidate class="max-w-4xl mx-auto flex gap-2 sm:gap-3 items-center">
           <!-- Hidden file input for photos and documents -->
           <input type="file" id="chatFileInput" accept="image/*,.pdf,.dxf,.dwg,.txt" class="hidden" />
 
@@ -288,7 +288,6 @@
               id="queryInput" 
               placeholder="Задайте вопрос или прикрепите фото чертежа..." 
               class="w-full bg-slate-50 border border-slate-200 focus:border-sky-500 focus:bg-white rounded-2xl px-5 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all shadow-inner"
-              required
             />
           </div>
           <button type="submit" id="sendBtn" class="bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold px-5 sm:px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm transition-all shadow-md shadow-sky-600/20 hover:scale-[1.01] active:scale-[0.99] shrink-0">
@@ -311,7 +310,9 @@
     function fillSample(text) {
       const input = document.getElementById('queryInput');
       input.value = text;
-      input.focus();
+      // Мгновенная отправка быстрого сценария в 1 клик
+      const form = document.getElementById('chatForm');
+      form.dispatchEvent(new Event('submit', { cancelable: true }));
     }
 
 
@@ -1078,9 +1079,27 @@
     document.getElementById('chatForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = document.getElementById('queryInput');
-      const query = input.value.trim();
+      let query = input.value.trim();
       const userRole = document.getElementById('userRole').value;
-      if (!query && !currentAttachment) return;
+
+      // Если поле пустое и нет вложений — мягкая подсказка без всплывающих окон браузера
+      if (!query && !currentAttachment) {
+        input.focus();
+        input.classList.add('ring-2', 'ring-sky-400', 'border-sky-400');
+        input.placeholder = 'Введите ваш вопрос или нажмите кнопку сценария вверху ☝️';
+        setTimeout(() => {
+          input.classList.remove('ring-2', 'ring-sky-400', 'border-sky-400');
+          input.placeholder = 'Задайте вопрос или прикрепите фото чертежа...';
+        }, 3000);
+        return;
+      }
+
+      // Если прикреплен файл или фото, но текст не написан — формируем понятный запрос
+      if (!query && currentAttachment) {
+        query = currentAttachment.isImage 
+          ? 'Проанализируй прикрепленное фото чертежа и дай экспертное заключение.' 
+          : 'Проанализируй прикрепленный нормативный документ.';
+      }
 
       const attachedFile = currentAttachment;
       removeAttachment();
