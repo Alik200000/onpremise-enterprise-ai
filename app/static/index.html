@@ -237,6 +237,11 @@
           <button type="button" id="attachBtn" class="p-3 text-slate-500 hover:text-sky-600 hover:bg-sky-50 border border-slate-200 rounded-2xl transition-all shrink-0 shadow-sm flex items-center justify-center" title="Прикрепить фото чертежа или документ">
             <i data-lucide="paperclip" class="w-5 h-5"></i>
           </button>
+          
+          <!-- Voice Input Button (Microphone) -->
+          <button type="button" id="voiceBtn" class="p-3 text-slate-500 hover:text-sky-600 hover:bg-sky-50 border border-slate-200 rounded-2xl transition-all shrink-0 shadow-sm flex items-center justify-center" title="Голосовой ввод запроса">
+            <i data-lucide="mic" class="w-5 h-5"></i>
+          </button>
 
           <div class="relative flex-1">
             <input 
@@ -271,6 +276,7 @@
     }
 
     function clearChat() {
+      chatHistory = [];
       const chatArea = document.getElementById('chatArea');
       chatArea.innerHTML = `
         <div class="flex gap-4 max-w-3xl">
@@ -278,8 +284,11 @@
             <i data-lucide="bot" class="w-5 h-5"></i>
           </div>
           <div class="chat-bubble-ai rounded-3xl p-6 text-sm text-slate-700 leading-relaxed border border-slate-200">
-            <h3 class="text-base font-bold text-slate-900 mb-2">Сессия обновлена</h3>
-            <p class="text-slate-600">История очищена. Задайте новый инженерный вопрос или загрузите чертеж.</p>
+            <h3 class="text-base font-bold text-slate-900 mb-1 flex items-center gap-2">
+              <span>Сессия обновлена</span>
+              <span class="text-[10px] font-mono bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold">Память очищена</span>
+            </h3>
+            <p class="text-slate-600">История диалога сброшена. Задайте новый инженерный вопрос, прикрепите фото или чертеж.</p>
           </div>
         </div>
       `;
@@ -354,7 +363,7 @@
             function formatMarkdown(text) {
       if (!text) return '';
 
-      // Превращаем LaTeX формулы в чистый Юникод без склеивания русских слов
+      // 1. Превращаем LaTeX формулы в чистый Юникод без склеивания русских слов
       text = text.replace(/\\text\{([^}]+)\}/g, ' $1 ');
       text = text.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1 / $2)');
       text = text.replace(/\\lambda/g, 'λ');
@@ -371,20 +380,72 @@
       text = text.replace(/\\pm/g, '±');
       text = text.replace(/_\{([^}]+)\}/g, '_$1');
       text = text.replace(/\^\{([^}]+)\}/g, '^$1');
-      // Снимаем обратные слеши с оставшихся латинских букв
       text = text.replace(/\\([a-zA-Z]+)/g, '$1');
-      // Удаляем доллары и скобки формул, чтобы исключить склейку слов
       text = text.replace(/\$\$|\$|\\\(|\\\)|\\[|\\]/g, ' ');
 
-      // Форматируем жирный текст и курсив
+      // 2. Блоки кода ```...```
+      text = text.replace(/```([a-zA-Z0-9]*)\n?([\s\S]*?)```/g, function(match, lang, code) {
+        var safeCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
+        var codeId = 'code_' + Math.random().toString(36).substr(2, 9);
+        return '<div class="my-3 rounded-2xl bg-slate-900 text-slate-100 overflow-hidden shadow-sm border border-slate-800">' +
+               '  <div class="flex items-center justify-between px-4 py-2 bg-slate-950/70 text-[11px] font-mono text-slate-400 border-b border-slate-800">' +
+               '    <span class="font-semibold text-slate-300">' + (lang || 'код') + '</span>' +
+               '    <button type="button" onclick="copySnippet(\'' + codeId + '\', this)" class="hover:text-white transition-colors flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px]">' +
+               '      <i data-lucide="copy" class="w-3 h-3"></i><span>Копировать</span>' +
+               '    </button>' +
+               '  </div>' +
+               '  <pre id="' + codeId + '" class="p-3.5 text-xs font-mono overflow-x-auto custom-scrollbar"><code>' + safeCode + '</code></pre>' +
+               '</div>';
+      });
+
+      // 3. Инлайн код `...`
+      text = text.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded-md bg-slate-100 text-sky-700 font-mono text-xs border border-slate-200">$1</code>');
+
+      // 4. Жирный и курсив
       text = text.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
       text = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-slate-900">$1</strong>');
       text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
 
       var lines = text.split(String.fromCharCode(10));
       var out = [];
+      var inTable = false;
+      var tableRows = [];
+
+      function flushTable() {
+        if (!tableRows.length) return;
+        var html = '<div class="my-3 overflow-x-auto rounded-2xl border border-slate-200 shadow-xs"><table class="w-full text-left text-xs border-collapse">';
+        for (var r = 0; r < tableRows.length; r++) {
+          var row = tableRows[r];
+          var isHeader = (r === 0);
+          html += '<tr class="' + (isHeader ? 'bg-slate-100/90 font-bold text-slate-900 border-b border-slate-200' : (r % 2 === 0 ? 'bg-white' : 'bg-slate-50/60') + ' border-b border-slate-100 hover:bg-sky-50/40 transition-colors') + '">';
+          for (var c = 0; c < row.length; c++) {
+            var tag = isHeader ? 'th' : 'td';
+            html += '<' + tag + ' class="px-3.5 py-2.5">' + row[c].trim() + '</' + tag + '>';
+          }
+          html += '</tr>';
+        }
+        html += '</table></div>';
+        out.push(html);
+        tableRows = [];
+        inTable = false;
+      }
+
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
+
+        if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+          if (/^\|[\s\-:|]+\|$/.test(line.trim())) {
+            inTable = true;
+            continue;
+          }
+          var cells = line.trim().slice(1, -1).split('|');
+          tableRows.push(cells);
+          inTable = true;
+          continue;
+        } else if (inTable) {
+          flushTable();
+        }
+
         if (line.startsWith('##### ')) {
           out.push('<h5 class="text-xs font-bold text-slate-900 mt-3 mb-1">' + line.substring(6) + '</h5>');
         } else if (line.startsWith('#### ')) {
@@ -397,14 +458,53 @@
           out.push('<h1 class="text-xl font-bold text-slate-900 mt-6 mb-3">' + line.substring(2) + '</h1>');
         } else if (line.startsWith('* ') || line.startsWith('- ')) {
           out.push('<div class="flex items-start gap-2 my-1"><span class="text-sky-500 font-bold">•</span><span>' + line.substring(2) + '</span></div>');
+        } else if (/^\d+\.\s/.test(line)) {
+          var numMatch = line.match(/^(\d+\.)\s(.*)$/);
+          out.push('<div class="flex items-start gap-2 my-1"><span class="text-sky-600 font-semibold font-mono text-xs">' + numMatch[1] + '</span><span>' + numMatch[2] + '</span></div>');
         } else if (line.trim() === '') {
           out.push('<div class="my-2"></div>');
         } else {
           out.push('<div class="my-0.5">' + line + '</div>');
         }
       }
+      if (inTable) flushTable();
+
       return out.join('');
     }
+
+    // Хранилище контекстной памяти диалога (Multi-turn Chat)
+    let chatHistory = [];
+
+    // Функции быстрого копирования
+    window.copyBotReport = function(btn) {
+      const bubble = btn.closest('.chat-bubble-ai');
+      const reportDiv = bubble ? bubble.querySelector('.report-content') : null;
+      if (!reportDiv) return;
+      const text = reportDiv.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600"></i><span class="text-emerald-700 font-semibold">Скопировано!</span>`;
+        lucide.createIcons();
+        setTimeout(() => {
+          btn.innerHTML = originalHTML;
+          lucide.createIcons();
+        }, 2000);
+      });
+    };
+
+    window.copySnippet = function(codeId, btn) {
+      const pre = document.getElementById(codeId);
+      if (!pre) return;
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-emerald-400"></i><span class="text-emerald-400">Скопировано!</span>`;
+        lucide.createIcons();
+        setTimeout(() => {
+          btn.innerHTML = originalHTML;
+          lucide.createIcons();
+        }, 2000);
+      });
+    };
 
     const GROQ_CONFIG = {
       _k: atob('Z3NrX1FJVE1SS0lkWnJjTHhQWG9BTEtxV0dkeWIzRllSNUxGbm9obnJsVDkyOWF0eG5uUHpJNm4='),
@@ -413,6 +513,12 @@
     };
 
     async function queryLiveOnPremiseLLM(systemPrompt, userPrompt) {
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...chatHistory,
+        { role: 'user', content: userPrompt }
+      ];
+
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           const response = await fetch(GROQ_CONFIG.endpoint, {
@@ -423,12 +529,9 @@
             },
             body: JSON.stringify({
               model: GROQ_CONFIG.model,
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-              ],
+              messages: messages,
               temperature: 0.2,
-              max_tokens: 850
+              max_tokens: 1400
             })
           });
 
@@ -489,10 +592,8 @@
       }
 
       // 2. Агент-Инженер (RAG): подтягиваем контекст чертежей
-      let matchedSources = [];
       let contextSnippets = [];
       clientKnowledgeBase.forEach(doc => {
-        matchedSources.push(doc.name);
         if (doc.content) {
           contextSnippets.push('[' + doc.name + ']: ' + doc.content);
         }
@@ -500,15 +601,15 @@
 
       const fullContext = contextSnippets.join('\n\n');
 
-            const systemPrompt = `Ты — универсальный умный ИИ-помощник предприятия ТОО (как ChatGPT).
+      const systemPrompt = `Ты — универсальный умный ИИ-помощник предприятия ТОО (как ChatGPT).
 Твои возможности неограничены: ты умеешь отвечать на абсолютно любые темы — от инженерных расчетов, программирования и ГОСТов до свободного человеческого общения, юмора, советов и жизненных вопросов.
 ИНСТРУКЦИЯ:
 1. Отвечай прямо, дружелюбно, по-человечески и по делу, без шаблонных предисловий и лишней воды.
-2. Если вопрос инженерный или расчетный (например, по опоре ОМ-1) — дай точный инженерный расчет с формулами и запасом прочности.
+2. Если вопрос инженерный или расчетный (например, по опоре ОМ-1) — дай точный инженерный расчет с формулами, понятными шагами и итоговым коэффициентом запаса прочности. Оформляй параметры в аккуратные Markdown-таблицы, если это уместно!
 3. Если пользователь общается свободно (например, прикрепил личное фото, спросил "как дела?", "оцени вид", шутит или задает вопрос не по работе) — отвечай свободно, живо и естественно, как настоящий внимательный собеседник (не навязывай чертежи и металлоконструкции, если о них не спрашивали!).
-4. ПРАВИЛО ФОРМУЛ И ТЕКСТА: Пиши формулы обычным чистым текстом с нормальными пробелами (например: λ = l / i = 420 / 3.82 ≈ 110, N = φ · Ry · A). СТРОГО ЗАПРЕЩЕНО использовать синтаксис LaTeX, знаки доллара ($), слеши \( \), теги типа \text{}. Все слова на русском языке пиши с обычными естественными пробелами, ни в коем случае не склеивай слова!`;
+4. ПРАВИЛО ФОРМУЛ И ТЕКСТА: Пиши формулы обычным чистым текстом с нормальными пробелами (например: λ = l / i = 420 / 3.82 ≈ 110, N = φ · Ry · A). СТРОГО ЗАПРЕЩЕНО использовать синтаксис LaTeX, знаки доллара ($), слеши \\( \\), теги типа \\text{}. Все слова на русском языке пиши с обычными естественными пробелами, ни в коем случае не склеивай слова!`;
 
-      // Умный роутинг RAG: подмешиваем контекст чертежей только тогда, когда вопрос инженерный
+      // Умный роутинг RAG
       const isEngineeringQuery = /чертеж|опор|двутавр|сталь|нагрузк|прочност|гибкост|гост|спдс|расчет|прогиб|сечени|анкер|кн|мпа|болт|узел|кж|км|металл|снип/i.test(query);
       
       let userPrompt = query;
@@ -540,10 +641,8 @@
       chatFileInput.click();
     });
 
-    chatFileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
+    function handleIncomingFile(file) {
       if (!file) return;
-
       const isImage = file.type.startsWith('image/');
       const reader = new FileReader();
 
@@ -568,6 +667,12 @@
           sizeKb: Math.round(file.size / 1024)
         };
         renderAttachmentPreview();
+      }
+    }
+
+    chatFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleIncomingFile(e.target.files[0]);
       }
     });
 
@@ -608,6 +713,72 @@
       }
     }
 
+    // Drag and Drop для области чата
+    const chatAreaElem = document.getElementById('chatArea');
+    ['dragenter', 'dragover'].forEach(eventName => {
+      chatAreaElem.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        chatAreaElem.classList.add('ring-2', 'ring-sky-400', 'ring-inset', 'bg-sky-50/20');
+      });
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      chatAreaElem.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        chatAreaElem.classList.remove('ring-2', 'ring-sky-400', 'ring-inset', 'bg-sky-50/20');
+      });
+    });
+    chatAreaElem.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        handleIncomingFile(files[0]);
+      }
+    });
+
+    // Голосовой ввод (Web Speech API)
+    const voiceBtn = document.getElementById('voiceBtn');
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRec();
+      recognition.lang = 'ru-RU';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      let isVoiceActive = false;
+
+      voiceBtn.addEventListener('click', () => {
+        if (isVoiceActive) {
+          recognition.stop();
+          return;
+        }
+        try {
+          recognition.start();
+          isVoiceActive = true;
+          voiceBtn.classList.add('bg-rose-50', 'text-rose-600', 'border-rose-300', 'animate-pulse');
+        } catch (err) {
+          console.warn('Voice error:', err);
+        }
+      });
+
+      recognition.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        const input = document.getElementById('queryInput');
+        input.value = (input.value ? input.value + ' ' : '') + transcript;
+        input.focus();
+      };
+
+      recognition.onend = () => {
+        isVoiceActive = false;
+        voiceBtn.classList.remove('bg-rose-50', 'text-rose-600', 'border-rose-300', 'animate-pulse');
+      };
+
+      recognition.onerror = () => {
+        isVoiceActive = false;
+        voiceBtn.classList.remove('bg-rose-50', 'text-rose-600', 'border-rose-300', 'animate-pulse');
+      };
+    } else if (voiceBtn) {
+      voiceBtn.style.display = 'none';
+    }
+
+    // Отправка запроса в чат
     document.getElementById('chatForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = document.getElementById('queryInput');
@@ -648,10 +819,19 @@
       chatArea.scrollTop = chatArea.scrollHeight;
       lucide.createIcons();
 
+      // Динамический прогресс шагов
       const statusBar = document.getElementById('processStatusBar');
       const statusText = document.getElementById('processStatusText');
       statusBar.classList.remove('hidden');
-      statusText.innerText = 'AI анализирует данные и готовит ответ...';
+      statusText.innerText = 'Шаг 1/3: DLP-контроль безопасности контура...';
+
+      const stepTimer1 = setTimeout(() => {
+        statusText.innerText = 'Шаг 2/3: RAG-поиск по чертежам, ГОСТам и СПДС...';
+      }, 400);
+
+      const stepTimer2 = setTimeout(() => {
+        statusText.innerText = 'Шаг 3/3: Генерация инженерного заключения (Qwen On-Premise)...';
+      }, 900);
 
       let fullUserQuery = query;
       if (attachedFile) {
@@ -660,7 +840,16 @@
 
       setTimeout(async () => {
         const data = await processClientQuery(fullUserQuery, userRole);
+        clearTimeout(stepTimer1);
+        clearTimeout(stepTimer2);
         statusBar.classList.add('hidden');
+
+        // Сохраняем в историю диалога
+        if (data.success && data.ceo_report) {
+          chatHistory.push({ role: 'user', content: fullUserQuery });
+          chatHistory.push({ role: 'assistant', content: data.ceo_report });
+          if (chatHistory.length > 8) chatHistory = chatHistory.slice(-8);
+        }
 
         const botMsg = document.createElement('div');
         botMsg.className = 'flex gap-3 sm:gap-4 max-w-3xl';
@@ -674,23 +863,26 @@
           </div>
           <div class="chat-bubble-ai ${borderTone} rounded-3xl p-5 text-sm text-slate-800 leading-relaxed w-full shadow-sm">
             <div class="report-content text-slate-700 leading-relaxed">${formatMarkdown(data.ceo_report)}</div>
+            ${!isBlocked ? `
+              <div class="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                <div class="flex items-center gap-2">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span class="font-mono text-[11px] text-slate-500">Qwen 2.5 • vLLM On-Premise</span>
+                </div>
+                <button type="button" onclick="copyBotReport(this)" class="hover:text-sky-600 text-slate-500 font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all text-xs">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                  <span>Копировать</span>
+                </button>
+              </div>
+            ` : ''}
           </div>
         `;
         chatArea.appendChild(botMsg);
         chatArea.scrollTop = chatArea.scrollHeight;
         lucide.createIcons();
-        if (window.renderMathInElement) {
-          renderMathInElement(botMsg, {
-            delimiters: [
-              {left: '$$', right: '$$', display: true},
-              {left: '\(', right: '\)', display: false},
-              {left: '\\[', right: '\\]', display: true}
-            ],
-            throwOnError: false, errorColor: '#1e293b'
-          });
-        }
       }, 300);
     });
+
   </script>
 </body>
 </html>
