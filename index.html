@@ -322,6 +322,7 @@
     const SESSIONS_STORAGE_KEY = 'onpremise_enterprise_ai_sessions_v2';
     let chatSessions = [];
     let currentSessionId = null;
+    let chatHistory = [];
 
     function switchSidebarTab(tab) {
       const tabSessionsBtn = document.getElementById('tabSessionsBtn');
@@ -769,8 +770,7 @@
       return out.join('');
     }
 
-    // Хранилище контекстной памяти диалога (Multi-turn Chat)
-    let chatHistory = [];
+    // Хранилище контекстной памяти диалога (Multi-turn Chat) - объявлено выше
 
     // Функции быстрого копирования
     window.copyBotReport = function(btn) {
@@ -1159,6 +1159,8 @@
         clearTimeout(stepTimer2);
         statusBar.classList.add('hidden');
 
+        const isBlocked = !data.success;
+
         // Сохраняем в историю диалога
         if (data.success && data.ceo_report) {
           chatHistory.push({ role: 'user', content: fullUserQuery });
@@ -1196,8 +1198,6 @@
 
         const botMsg = document.createElement('div');
         botMsg.className = 'flex gap-3 sm:gap-4 max-w-3xl';
-        
-        const isBlocked = !data.success;
         const borderTone = isBlocked ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200 bg-white';
 
         botMsg.innerHTML = `
