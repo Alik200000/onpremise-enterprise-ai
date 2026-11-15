@@ -44,6 +44,42 @@
       background: linear-gradient(135deg, #0284c7, #2563eb);
       box-shadow: 0 6px 20px -2px rgba(2, 132, 199, 0.25);
     }
+  
+    /* =========================================================================
+       PRINT STYLES FOR OFFICIAL PTO REPORT (PDF / ПЕЧАТЬ ГОСТ)
+       ========================================================================= */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #ptoPrintArea, #ptoPrintArea * {
+        visibility: visible !important;
+      }
+      #ptoPrintArea {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 20mm !important;
+        background: white !important;
+        color: black !important;
+        font-family: 'Times New Roman', serif !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .animate-pulse-ring {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+
   </style>
 
 </head>
@@ -88,6 +124,18 @@
           <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
         </button>
       </div>
+
+      <!-- CAD 2D Viewer Button -->
+      <button onclick="openCadModal()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-xs font-semibold transition-all shadow-xs" title="Интерактивный чертеж опорного узла ОМ-1 (CAD 2D)">
+        <i data-lucide="compass" class="w-3.5 h-3.5 text-sky-600"></i>
+        <span>Чертеж ОМ-1</span>
+      </button>
+
+      <!-- KMD Diff Button -->
+      <button onclick="openKmdDiffModal()" class="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-semibold transition-all shadow-xs" title="Сравнение версий проектной документации КМД (Rev.01 vs Rev.02)">
+        <i data-lucide="git-compare" class="w-3.5 h-3.5 text-amber-600"></i>
+        <span>Ревизии КМД</span>
+      </button>
 
       <!-- Admin Panel Button (Служба ИБ и Реестр компании) -->
       <button id="adminPanelHeaderBtn" onclick="openAdminModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-semibold transition-all shadow-xs" title="Открыть Админ-панель ИБ (реестр сотрудников и журнал нарушений)">
@@ -578,6 +626,11 @@
             <span>🚨 Журнал запрещенных запросов (DLP)</span>
             <span id="adminTotalIncidentsBadge" class="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-rose-100 text-rose-800 font-mono">2</span>
           </button>
+          <button id="adminTabBtn-hardware" onclick="switchAdminTab('hardware')" class="py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all">
+            <i data-lucide="cpu" class="w-4 h-4 text-indigo-500"></i>
+            <span>🖥️ Мониторинг сервера (GPU)</span>
+            <span class="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-mono">64%</span>
+          </button>
         </div>
 
         <div class="text-[11px] font-mono text-slate-400 hidden sm:block">
@@ -764,6 +817,489 @@
           </div>
         </div>
 
+        <!-- TAB 3: HARDWARE & SERVER TELEMETRY (CTO & IT MONITORING) -->
+        <div id="adminTabContent-hardware" class="hidden space-y-5 animate-fade-in">
+          <!-- Server Overview Card -->
+          <div class="p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl text-white shadow-xl border border-indigo-500/20 relative overflow-hidden">
+            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <h3 class="font-extrabold text-base tracking-tight font-mono">NODE-01 • ALMATY DC (ТОО «ПРОМКОНСТРУКЦИЯ»)</h3>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold font-mono">AIR-GAPPED ИЗОЛИРОВАН</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-1">
+                  Локальный сервер NVIDIA Supermicro • Zero-Cloud • Полный запрет исходящего трафика (Firewall Level 4)
+                </p>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="text-right">
+                  <div class="text-[10px] font-mono text-slate-400 uppercase">Локальный RAG Индекс</div>
+                  <div class="text-sm font-bold font-mono text-sky-400">842 фрагмента СП/ГОСТ</div>
+                </div>
+                <div class="h-8 w-px bg-white/20"></div>
+                <div class="text-right">
+                  <div class="text-[10px] font-mono text-slate-400 uppercase">Скорость vLLM</div>
+                  <div class="text-sm font-bold font-mono text-emerald-400">52.4 токенов/сек</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hardware Metrics Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- GPU 0 Core Load -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">NVIDIA RTX A6000 #0</span>
+                <span class="text-xs font-mono font-bold text-indigo-600">64%</span>
+              </div>
+              <div class="text-lg font-black text-slate-900 font-mono mb-2">GPU Загрузка</div>
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 h-2.5 rounded-full" style="width: 64%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] font-mono text-slate-400 mt-2">
+                <span>CUDA Cores: 10,752</span>
+                <span class="text-emerald-600">240 W / 300 W</span>
+              </div>
+            </div>
+
+            <!-- VRAM Memory -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">GDDR6 VRAM</span>
+                <span class="text-xs font-mono font-bold text-sky-600">38.3%</span>
+              </div>
+              <div class="text-lg font-black text-slate-900 font-mono mb-2">18.4 / 48.0 GB</div>
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-sky-400 to-blue-600 h-2.5 rounded-full" style="width: 38.3%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] font-mono text-slate-400 mt-2">
+                <span>Модель в памяти: 14.8 GB</span>
+                <span>KV-Cache: 3.6 GB</span>
+              </div>
+            </div>
+
+            <!-- Temperature & Cooling -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Температура GPU</span>
+                <span class="text-xs font-mono font-bold text-emerald-600">Норма</span>
+              </div>
+              <div class="text-lg font-black text-slate-900 font-mono mb-2">58 °C</div>
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="bg-emerald-500 h-2.5 rounded-full" style="width: 58%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] font-mono text-slate-400 mt-2">
+                <span>Кулеры: 45% (1800 RPM)</span>
+                <span>Лимит: 84 °C</span>
+              </div>
+            </div>
+
+            <!-- Latency & Network -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[10px] font-mono text-slate-400 uppercase font-bold">Инференс TTFT</span>
+                <span class="text-xs font-mono font-bold text-purple-600">285 мс</span>
+              </div>
+              <div class="text-lg font-black text-slate-900 font-mono mb-2">0.00 KB/s Ext.</div>
+              <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div class="bg-purple-500 h-2.5 rounded-full" style="width: 100%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] font-mono text-slate-400 mt-2">
+                <span>Облачный трафик: 0</span>
+                <span class="text-emerald-600 font-bold">DLP Блокировка вкл.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Telegram Security Webhook Settings -->
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl">
+                  <i data-lucide="send" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h4 class="font-extrabold text-sm text-slate-900">Telegram-канал оповещений службы ИБ (@prom_security_ops)</h4>
+                  <p class="text-xs text-slate-500">Автоматическая отправка тревожных алертов при фиксации запрещенных запросов или попыток слива базы</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Подключено (Bot Active)
+                </span>
+                <button onclick="testTelegramAlert()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all">
+                  Тестовый алерт
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- =========================================================================
+       1. OFFICIAL PTO ENGINEERING REPORT MODAL (PDF / ПЕЧАТЬ ГОСТ СО ШТАМПОМ)
+       ========================================================================= -->
+  <div id="ptoReportModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col max-h-[92vh] overflow-hidden animate-fade-in">
+      
+      <!-- Modal Toolbar (Скрывается при печати) -->
+      <div class="no-print p-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold">
+            <i data-lucide="file-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-sm sm:text-base">Официальное инженерное заключение ПТО</h3>
+            <p class="text-xs text-slate-400">Форма протокола согласования расчета по СП РК 5.04-23-2022 и ГОСТ</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="printPtoReport()" class="bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold py-2 px-4 rounded-xl text-xs transition-all shadow-md shadow-sky-600/20 flex items-center gap-2 cursor-pointer">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>Печать / Сохранить в PDF</span>
+          </button>
+          <button onclick="closePtoReportModal()" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Scrollable Document Preview Area -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100 flex justify-center">
+        <!-- Printable A4 Paper Container -->
+        <div id="ptoPrintArea" class="w-full max-w-[210mm] bg-white p-8 sm:p-12 shadow-xl border border-slate-200 text-slate-900 font-serif leading-relaxed text-xs relative">
+          
+          <!-- Company Header / Угловой штамп -->
+          <div class="border-b-2 border-slate-900 pb-4 mb-6 flex justify-between items-start">
+            <div>
+              <div class="font-bold text-base tracking-wider uppercase font-sans text-slate-900">ТОО «ПРОМКОНСТРУКЦИЯ»</div>
+              <div class="text-[10px] text-slate-600 font-sans mt-0.5">БИН: 180440028912 • ОКЭД: 25.11.1 (Производство строительных металлоконструкций)</div>
+              <div class="text-[10px] text-slate-600 font-sans">Республика Казахстан, г. Алматы, пр. Райымбека, 212/2 • Тел: +7 (727) 349-50-20</div>
+              <div class="text-[10px] text-slate-600 font-sans">Государственная лицензия на проектирование и СМР № 21004829 (I категория)</div>
+            </div>
+            <div class="text-right font-sans">
+              <div class="inline-block border-2 border-slate-800 px-3 py-1 font-bold text-[10px] uppercase tracking-wide">
+                В ПРОИЗВОДСТВО РАБОТ
+              </div>
+              <div class="text-[9px] text-slate-500 mt-1 font-mono">Штамп ПТО № 04/26</div>
+            </div>
+          </div>
+
+          <!-- Document Title -->
+          <div class="text-center my-6">
+            <h1 class="text-base sm:text-lg font-bold uppercase tracking-tight font-sans">
+              ИНЖЕНЕРНОЕ ЗАКЛЮЧЕНИЕ ПТО № ПТО-2026/11-0482
+            </h1>
+            <p class="text-[11px] text-slate-600 font-sans mt-1">
+              по результатам автоматизированного расчета прочности и устойчивости опорного узла
+            </p>
+          </div>
+
+          <!-- Metadata Grid -->
+          <div class="bg-slate-50 border border-slate-300 p-3.5 mb-5 font-sans text-[11px] grid grid-cols-2 gap-2">
+            <div><b>Объект строительства:</b> Логистический терминал «Северный» (г. Астана)</div>
+            <div><b>Дата расчета:</b> <span id="ptoReportDate">15 ноября 2026 г.</span></div>
+            <div><b>Проверяемый элемент:</b> Опорная стойка ОМ-1 (Чертеж КМД-04/26)</div>
+            <div><b>Ответственный инженер:</b> <span id="ptoReportAuthor">Д. К. Алимов (Инженер ПТО)</span></div>
+            <div><b>Нормативная база:</b> СП РК 5.04-23-2022, СП РК 2.01-01-2013</div>
+            <div><b>Статус верификации:</b> <span class="text-emerald-700 font-bold">СООТВЕТСТВУЕТ СНиП</span></div>
+          </div>
+
+          <!-- Content Body -->
+          <div class="space-y-4 text-justify font-sans text-[11px] leading-normal">
+            <p>
+              <b>1. ИСХОДНЫЕ ДАННЫЕ И НАГРУЗКИ:</b> Настоящий расчет произведен на основании исходного чертежа марки КМД и технического задания заказчика. Расчетная продольная сжимающая сила <i>N</i> = 185.0 кН; расчетный изгибающий момент <i>M<sub>x</sub></i> = 42.6 кН·м; расчетная поперечная сдвигающая сила <i>Q<sub>y</sub></i> = 18.4 кН. Ветровой район III (г. Астана, нормативное ветровое давление <i>w<sub>0</sub></i> = 0.38 кПа).
+            </p>
+
+            <p>
+              <b>2. РЕЗУЛЬТАТЫ ПРОВЕРКИ ПРОЧНОСТИ И ДЕФОРМАТИВНОСТИ:</b>
+            </p>
+
+            <!-- Table of Calculations -->
+            <table class="w-full border-collapse border border-slate-400 text-left my-2 text-[10px]">
+              <thead class="bg-slate-100 font-bold uppercase">
+                <tr>
+                  <th class="border border-slate-400 p-2">Параметр узла</th>
+                  <th class="border border-slate-400 p-2">Проектное значение</th>
+                  <th class="border border-slate-400 p-2">Фактическое / Расчетное</th>
+                  <th class="border border-slate-400 p-2">Допустимое по СП РК</th>
+                  <th class="border border-slate-400 p-2">Коэф. запаса</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="border border-slate-400 p-1.5 font-semibold">Опорная плита базы</td>
+                  <td class="border border-slate-400 p-1.5">600×600×30 мм</td>
+                  <td class="border border-slate-400 p-1.5">Сталь С345 (ГОСТ 27772)</td>
+                  <td class="border border-slate-400 p-1.5">σ<sub>max</sub> ≤ 345 МПа</td>
+                  <td class="border border-slate-400 p-1.5 text-emerald-700 font-bold">k = 1.28 (+28%)</td>
+                </tr>
+                <tr>
+                  <td class="border border-slate-400 p-1.5 font-semibold">Анкерные болты (4 шт)</td>
+                  <td class="border border-slate-400 p-1.5">4×М24 (ГОСТ 24379.1)</td>
+                  <td class="border border-slate-400 p-1.5">Сталь 09Г2С, класс 8.8</td>
+                  <td class="border border-slate-400 p-1.5">R<sub>ba</sub> ≤ 225 МПа</td>
+                  <td class="border border-slate-400 p-1.5 text-emerald-700 font-bold">k = 1.22 (+22%)</td>
+                </tr>
+                <tr>
+                  <td class="border border-slate-400 p-1.5 font-semibold">Затяжка анкерных болтов</td>
+                  <td class="border border-slate-400 p-1.5">Тарированный ключ</td>
+                  <td class="border border-slate-400 p-1.5">M<sub>зат</sub> = 245 Н·м</td>
+                  <td class="border border-slate-400 p-1.5">240 - 250 Н·м</td>
+                  <td class="border border-slate-400 p-1.5 text-emerald-700 font-bold">Норма</td>
+                </tr>
+                <tr>
+                  <td class="border border-slate-400 p-1.5 font-semibold">Сварные угловые швы</td>
+                  <td class="border border-slate-400 p-1.5">Катет k<sub>f</sub> = 8 мм</td>
+                  <td class="border border-slate-400 p-1.5">Сварка в среде CO<sub>2</sub> (Св-08Г2С)</td>
+                  <td class="border border-slate-400 p-1.5">R<sub>wf</sub> ≤ 215 МПа</td>
+                  <td class="border border-slate-400 p-1.5 text-emerald-700 font-bold">k = 1.34 (+34%)</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p>
+              <b>3. ИТОГОВЫЙ ВЫВОД ПТО:</b> Конструкция базового узла стойки ОМ-1 с анкерными болтами 4×М24, опорной плитой 30 мм (сталь С345) и ребрами жесткости 12 мм <b>полностью удовлетворяет условиям прочности, жесткости и общей устойчивости</b> согласно СП РК 5.04-23-2022. Изделие допускается к серийному изготовлению в цехе МК и монтажу на объекте.
+            </p>
+          </div>
+
+          <!-- Signatures & Official Stamp -->
+          <div class="mt-8 pt-6 border-t border-slate-300 flex justify-between items-end relative font-sans">
+            <div class="space-y-4">
+              <div>
+                <div class="text-[11px] font-bold">Главный специалист ПТО:</div>
+                <div class="text-xs italic text-slate-800 mt-1">________________ / Д. К. Алимов</div>
+              </div>
+              <div>
+                <div class="text-[11px] font-bold">Инженер технического контроля (ОТК):</div>
+                <div class="text-xs italic text-slate-800 mt-1">________________ / Е. К. Сарсенов</div>
+              </div>
+            </div>
+
+            <!-- Blue Stamp Decoration -->
+            <div class="relative w-36 h-36 border-4 border-blue-600/80 rounded-full p-2 flex flex-col items-center justify-center text-center text-blue-700/80 rotate-[-8deg] select-none pointer-events-none shadow-sm">
+              <div class="text-[8px] font-bold uppercase tracking-widest">ҚАЗАҚСТАН РЕСПУБЛИКАСЫ</div>
+              <div class="text-[9px] font-black uppercase my-0.5">ТОО «ПРОМКОНСТРУКЦИЯ»</div>
+              <div class="w-16 h-px bg-blue-600/60 my-0.5"></div>
+              <div class="text-[8px] font-bold">ОТДЕЛ ТЕХНИЧЕСКОГО КОНТРОЛЯ</div>
+              <div class="text-[9px] font-black tracking-wider text-blue-800 uppercase">СОГЛАСОВАНО</div>
+              <div class="text-[7px] font-mono mt-0.5">БИН 180440028912</div>
+            </div>
+          </div>
+
+          <div class="mt-6 text-[9px] font-mono text-slate-400 text-center border-t border-slate-200 pt-2 font-sans">
+            Документ сформирован On-Premise Enterprise AI Core (ТОО «ПромКонструкция») • Изолированный защищенный контур • Хеш верификации: SHA256-749e8a9f20c1
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       2. INTERACTIVE 2D CAD CANVAS VIEWER (УЗЕЛ ОПОРЫ ОМ-1)
+       ========================================================================= -->
+  <div id="cadModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+    <div class="w-full max-w-5xl h-[90vh] bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 flex flex-col overflow-hidden animate-fade-in text-white">
+      
+      <!-- CAD Toolbar -->
+      <div class="p-4 bg-slate-950/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold">
+            <i data-lucide="compass" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-extrabold text-sm sm:text-base">Интерактивный CAD-просмотр: Опора ОМ-1</h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-sky-500/20 text-sky-400 border border-sky-500/30">КМД-04/26 • База 600×600</span>
+            </div>
+            <p class="text-xs text-slate-400">Векторный рендер чертежа узла базы стойки (HTML5 Canvas 2D) с анкерами М24</p>
+          </div>
+        </div>
+
+        <!-- Layer Toggles -->
+        <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+          <label class="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
+            <input type="checkbox" id="cadLayerGrid" checked onchange="drawCadDrawing()" class="rounded border-slate-700 text-sky-500 focus:ring-0" />
+            <span>Сетка</span>
+          </label>
+          <span class="text-slate-700">|</span>
+          <label class="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
+            <input type="checkbox" id="cadLayerDims" checked onchange="drawCadDrawing()" class="rounded border-slate-700 text-sky-500 focus:ring-0" />
+            <span>Размеры</span>
+          </label>
+          <span class="text-slate-700">|</span>
+          <label class="flex items-center gap-1.5 cursor-pointer text-slate-300 hover:text-white">
+            <input type="checkbox" id="cadLayerRibs" checked onchange="drawCadDrawing()" class="rounded border-slate-700 text-sky-500 focus:ring-0" />
+            <span>Рёбра t=12</span>
+          </label>
+        </div>
+
+        <!-- Zoom / Action Controls -->
+        <div class="flex items-center gap-2">
+          <button onclick="cadZoomIn()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors" title="Приблизить (+)">
+            <i data-lucide="zoom-in" class="w-4 h-4"></i>
+          </button>
+          <button onclick="cadZoomOut()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors" title="Отдалить (-)">
+            <i data-lucide="zoom-out" class="w-4 h-4"></i>
+          </button>
+          <button onclick="cadResetView()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors" title="Сбросить масштаб">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          </button>
+          <button onclick="closeCadModal()" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas Drawing Area -->
+      <div class="flex-1 relative bg-[#0b1329] overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing" id="cadCanvasContainer">
+        <canvas id="cadCanvas" class="w-full h-full block"></canvas>
+        
+        <!-- Hover Element Tooltip -->
+        <div id="cadTooltip" class="hidden absolute pointer-events-none bg-slate-900/95 border border-sky-400/50 text-white p-2.5 rounded-xl shadow-2xl text-xs z-20 font-mono backdrop-blur-md"></div>
+        
+        <!-- Legend Overlay -->
+        <div class="absolute bottom-4 left-4 bg-slate-950/80 backdrop-blur-md border border-slate-800 p-3 rounded-2xl text-xs text-slate-300 space-y-1 font-mono pointer-events-none">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-sm bg-sky-500/40 border border-sky-400"></span>
+            <span>Опорная плита: 600×600×30 мм (С345)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-emerald-400 border border-emerald-300"></span>
+            <span>Анкерные болты: 4×М24 (шаг 480 мм, 09Г2С)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 bg-amber-400/60 border border-amber-300"></span>
+            <span>Рёбра жёсткости: t=12 мм (трапеция)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       3. KMD SPECIFICATION & REVISION DIFF MODAL (СРАВНЕНИЕ РЕВИЗИЙ КМД)
+       ========================================================================= -->
+  <div id="kmdDiffModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+    <div class="w-full max-w-4xl max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-fade-in text-slate-900">
+      
+      <!-- Modal Header -->
+      <div class="p-5 bg-gradient-to-r from-amber-600 to-amber-700 text-white flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-bold">
+            <i data-lucide="git-compare" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base">Контроль ревизий КМД: Опора ОМ-1</h3>
+            <p class="text-xs text-amber-100">Сравнение исходного проекта (Rev.01) с усиленной версией (Rev.02) по СП РК</p>
+          </div>
+        </div>
+        <button onclick="closeKmdDiffModal()" class="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Diff Content Table Area -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-50/50">
+        <!-- AI Summary Alert -->
+        <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+          <i data-lucide="info" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+          <div class="text-xs text-amber-900 leading-relaxed">
+            <b>Заключение нормоконтролера ИИ:</b> В ревизии Rev.02 произведено усиление опорной базы в связи с уточнением ветрового района (г. Астана, ветровой район III по СП РК 2.01-01-2013). Запрещено использовать старые заготовки толщиной 25 мм для монтажа на объекте!
+          </div>
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 border-b border-slate-200 font-mono text-[10px] text-slate-500 uppercase">
+              <tr>
+                <th class="py-3 px-4">Параметр узла</th>
+                <th class="py-3 px-4 bg-rose-50/50 text-rose-800">Ревизия 01 (Исходная)</th>
+                <th class="py-3 px-4 bg-emerald-50/50 text-emerald-800">Ревизия 02 (Текущая)</th>
+                <th class="py-3 px-4 text-right">Влияние на безопасность</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 font-medium">
+              <tr>
+                <td class="py-3 px-4 font-bold text-slate-800">Толщина опорной плиты</td>
+                <td class="py-3 px-4 text-rose-700 bg-rose-50/30 font-mono line-through">t = 25 мм (С245)</td>
+                <td class="py-3 px-4 text-emerald-700 bg-emerald-50/30 font-mono font-bold">t = 30 мм (С345)</td>
+                <td class="py-3 px-4 text-right text-emerald-600 font-semibold">+20% к жесткости плиты</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-bold text-slate-800">Класс прочности анкеров М24</td>
+                <td class="py-3 px-4 text-rose-700 bg-rose-50/30 font-mono line-through">Класс 5.8 (Ст3сп)</td>
+                <td class="py-3 px-4 text-emerald-700 bg-emerald-50/30 font-mono font-bold">Класс 8.8 (09Г2С)</td>
+                <td class="py-3 px-4 text-right text-emerald-600 font-semibold">+40% к расчетному сопротивлению</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-bold text-slate-800">Момент затяжки болтов</td>
+                <td class="py-3 px-4 text-slate-600 bg-rose-50/30 font-mono">180 Н·м</td>
+                <td class="py-3 px-4 text-emerald-700 bg-emerald-50/30 font-mono font-bold">245 Н·м</td>
+                <td class="py-3 px-4 text-right text-amber-600 font-semibold">Требует тарированного ключа</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-bold text-slate-800">Катет углового сварного шва</td>
+                <td class="py-3 px-4 text-rose-700 bg-rose-50/30 font-mono line-through">k<sub>f</sub> = 6 мм</td>
+                <td class="py-3 px-4 text-emerald-700 bg-emerald-50/30 font-mono font-bold">k<sub>f</sub> = 8 мм</td>
+                <td class="py-3 px-4 text-right text-emerald-600 font-semibold">+33% к несущей способности шва</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-bold text-slate-800">Рёбра жёсткости</td>
+                <td class="py-3 px-4 text-slate-600 bg-rose-50/30 font-mono">t = 10 мм</td>
+                <td class="py-3 px-4 text-emerald-700 bg-emerald-50/30 font-mono font-bold">t = 12 мм (трапеция)</td>
+                <td class="py-3 px-4 text-right text-emerald-600 font-semibold">Исключение выпучивания стенки</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button onclick="closeKmdDiffModal()" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-sm">
+            Понятно, принять к исполнению
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       4. TELEGRAM SECURITY BOT FLOATING ALERT (МОМЕНТАЛЬНОЕ УВЕДОМЛЕНИЕ ОФИЦЕРА ИБ)
+       ========================================================================= -->
+  <div id="telegramAlertToast" class="hidden fixed top-5 right-5 z-50 max-w-sm w-full bg-slate-900/95 text-white rounded-2xl shadow-2xl border border-sky-500/40 p-4 animate-fade-in backdrop-blur-md">
+    <div class="flex items-start gap-3">
+      <div class="w-10 h-10 rounded-xl bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-sky-500/30">
+        <i data-lucide="send" class="w-5 h-5"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-mono text-sky-400 font-bold flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span> @prom_security_ops
+          </span>
+          <span class="text-[10px] text-slate-400 font-mono">сейчас</span>
+        </div>
+        <div class="font-extrabold text-xs text-rose-400 mt-1 flex items-center gap-1">
+          <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> 🚨 DLP ALERT: ТОО «ПромКонструкция»
+        </div>
+        <p id="telegramAlertText" class="text-xs text-slate-200 mt-1 leading-snug">
+          Зафиксирован запрещенный запрос от сотрудника <b>Н. С. Касымов</b>.
+        </p>
+        <div class="mt-3 flex items-center gap-2">
+          <button onclick="openAdminModal(); switchAdminTab('audit'); closeTelegramAlert();" class="text-[11px] font-bold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 px-3 py-1 rounded-lg transition-colors">
+            Открыть журнал ИБ
+          </button>
+          <button onclick="closeTelegramAlert()" class="text-[11px] text-slate-400 hover:text-slate-200 px-2 py-1">
+            Закрыть
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -932,6 +1468,9 @@
       logs.unshift(incident);
       saveAuditLogs(logs);
       updateIncidentBadge();
+
+      // Моментальное всплывающее Telegram-оповещение офицера безопасности
+      showTelegramAlert(user, query, reason);
 
       // Если открыта вкладка аудита в админке - обновим таблицу на лету
       const auditTab = document.getElementById('adminTabContent-audit');
@@ -1256,8 +1795,39 @@
     function switchAdminTab(tabName) {
       const btnEmp = document.getElementById('adminTabBtn-employees');
       const btnAudit = document.getElementById('adminTabBtn-audit');
+      const btnHw = document.getElementById('adminTabBtn-hardware');
       const tabEmp = document.getElementById('adminTabContent-employees');
       const tabAudit = document.getElementById('adminTabContent-audit');
+      const tabHw = document.getElementById('adminTabContent-hardware');
+
+      // Reset all buttons
+      const activeClass = 'py-3 px-4 text-xs font-bold border-b-2 border-purple-600 text-purple-700 flex items-center gap-2 transition-all';
+      const inactiveClass = 'py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all';
+
+      if (btnEmp) btnEmp.className = inactiveClass;
+      if (btnAudit) btnAudit.className = inactiveClass;
+      if (btnHw) btnHw.className = inactiveClass;
+      if (tabEmp) tabEmp.classList.add('hidden');
+      if (tabAudit) tabAudit.classList.add('hidden');
+      if (tabHw) tabHw.classList.add('hidden');
+
+      if (tabName === 'employees') {
+        if (btnEmp) btnEmp.className = activeClass;
+        if (tabEmp) tabEmp.classList.remove('hidden');
+        renderEmployeesTable();
+      } else if (tabName === 'audit') {
+        if (btnAudit) btnAudit.className = activeClass;
+        if (tabAudit) tabAudit.classList.remove('hidden');
+        renderSecurityAuditTable();
+      } else if (tabName === 'hardware') {
+        if (btnHw) btnHw.className = activeClass;
+        if (tabHw) tabHw.classList.remove('hidden');
+      }
+      lucide.createIcons();
+      return;
+    }
+
+    function old_switchAdminTab_unused(tabName) {
 
       if (tabName === 'employees') {
         btnEmp.className = 'py-3 px-4 text-xs font-bold border-b-2 border-purple-600 text-purple-700 flex items-center gap-2 transition-all';
@@ -1551,6 +2121,440 @@ Email/Логин: ${email}
     }
 
     // Expose all admin & profile handlers to window
+
+    // =========================================================================
+    // 1. ОФИЦИАЛЬНОЕ ИНЖЕНЕРНОЕ ЗАКЛЮЧЕНИЕ ПТО (PDF / ПЕЧАТЬ ГОСТ СО ШТАМПОМ)
+    // =========================================================================
+    function openPtoReportModal() {
+      const authorEl = document.getElementById('ptoReportAuthor');
+      const dateEl = document.getElementById('ptoReportDate');
+
+      if (currentAuthUser && authorEl) {
+        authorEl.innerText = `${currentAuthUser.name} (${currentAuthUser.roleTitle})`;
+      }
+      if (dateEl) {
+        dateEl.innerText = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) + ' г.';
+      }
+
+      document.getElementById('ptoReportModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closePtoReportModal() {
+      const modal = document.getElementById('ptoReportModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function printPtoReport() {
+      window.print();
+    }
+
+    // =========================================================================
+    // 2. ИНТЕРАКТИВНЫЙ 2D CAD CANVAS VIEWER (ОПОРА ОМ-1)
+    // =========================================================================
+    let cadZoom = 1.0;
+    let cadPanX = 0;
+    let cadPanY = 0;
+    let isCadDragging = false;
+    let cadStartX = 0;
+    let cadStartY = 0;
+    let cadHoveredElement = null;
+
+    function openCadModal() {
+      document.getElementById('cadModal').classList.remove('hidden');
+      lucide.createIcons();
+      setTimeout(() => {
+        initCadCanvas();
+      }, 50);
+    }
+
+    function closeCadModal() {
+      const modal = document.getElementById('cadModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function cadZoomIn() {
+      cadZoom = Math.min(cadZoom * 1.25, 4.0);
+      drawCadDrawing();
+    }
+
+    function cadZoomOut() {
+      cadZoom = Math.max(cadZoom / 1.25, 0.4);
+      drawCadDrawing();
+    }
+
+    function cadResetView() {
+      cadZoom = 1.0;
+      cadPanX = 0;
+      cadPanY = 0;
+      drawCadDrawing();
+    }
+
+    function initCadCanvas() {
+      const canvas = document.getElementById('cadCanvas');
+      const container = document.getElementById('cadCanvasContainer');
+      if (!canvas || !container) return;
+
+      canvas.width = container.clientWidth * window.devicePixelRatio || 900;
+      canvas.height = container.clientHeight * window.devicePixelRatio || 600;
+
+      // Mouse drag listeners
+      container.onmousedown = (e) => {
+        isCadDragging = true;
+        cadStartX = e.clientX - cadPanX;
+        cadStartY = e.clientY - cadPanY;
+      };
+
+      window.onmousemove = (e) => {
+        if (isCadDragging) {
+          cadPanX = e.clientX - cadStartX;
+          cadPanY = e.clientY - cadStartY;
+          drawCadDrawing();
+        } else {
+          handleCadHover(e, canvas);
+        }
+      };
+
+      window.onmouseup = () => {
+        isCadDragging = false;
+      };
+
+      container.onwheel = (e) => {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          cadZoomIn();
+        } else {
+          cadZoomOut();
+        }
+      };
+
+      drawCadDrawing();
+    }
+
+    function handleCadHover(e, canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const tooltip = document.getElementById('cadTooltip');
+
+      if (mouseX < 0 || mouseX > rect.width || mouseY < 0 || mouseY > rect.height) {
+        if (tooltip) tooltip.classList.add('hidden');
+        return;
+      }
+
+      const cx = (canvas.width / (2 * window.devicePixelRatio)) + (cadPanX / window.devicePixelRatio);
+      const cy = (canvas.height / (2 * window.devicePixelRatio)) + (cadPanY / window.devicePixelRatio);
+      const scale = 0.55 * cadZoom;
+
+      // Bolt positions (in CAD mm: +/- 240)
+      const boltDistance = 240 * scale;
+      const bolts = [
+        { x: cx - boltDistance, y: cy - boltDistance, name: 'Анкерный болт 1: М24×1000 (09Г2С, затяжка 245 Н·м)' },
+        { x: cx + boltDistance, y: cy - boltDistance, name: 'Анкерный болт 2: М24×1000 (09Г2С, затяжка 245 Н·м)' },
+        { x: cx - boltDistance, y: cy + boltDistance, name: 'Анкерный болт 3: М24×1000 (09Г2С, затяжка 245 Н·м)' },
+        { x: cx + boltDistance, y: cy + boltDistance, name: 'Анкерный болт 4: М24×1000 (09Г2С, затяжка 245 Н·м)' }
+      ];
+
+      let found = null;
+      for (const b of bolts) {
+        const dist = Math.hypot(mouseX - b.x, mouseY - b.y);
+        if (dist < 18 * cadZoom) {
+          found = b;
+          break;
+        }
+      }
+
+      if (found && tooltip) {
+        tooltip.innerHTML = `🔩 <b>${found.name}</b><br><span class="text-sky-400">ГОСТ 24379.1-2012 • Отверстие Ø28 мм</span>`;
+        tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
+        tooltip.style.top = (e.clientY - rect.top + 15) + 'px';
+        tooltip.classList.remove('hidden');
+      } else if (tooltip) {
+        // Check if inside center tube
+        const centerDist = Math.hypot(mouseX - cx, mouseY - cy);
+        if (centerDist < 60 * scale) {
+          tooltip.innerHTML = `🏗️ <b>Стойка опоры ОМ-1</b><br>Труба Ø219×8 мм (Сталь С345)<br><span class="text-emerald-400">Шов полуавтоматический kf = 8 мм</span>`;
+          tooltip.style.left = (e.clientX - rect.left + 15) + 'px';
+          tooltip.style.top = (e.clientY - rect.top + 15) + 'px';
+          tooltip.classList.remove('hidden');
+        } else {
+          tooltip.classList.add('hidden');
+        }
+      }
+    }
+
+    function drawCadDrawing() {
+      const canvas = document.getElementById('cadCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, w, h);
+
+      const cx = (w / 2) + cadPanX;
+      const cy = (h / 2) + cadPanY;
+      const scale = 0.55 * cadZoom;
+
+      const showGrid = document.getElementById('cadLayerGrid') ? document.getElementById('cadLayerGrid').checked : true;
+      const showDims = document.getElementById('cadLayerDims') ? document.getElementById('cadLayerDims').checked : true;
+      const showRibs = document.getElementById('cadLayerRibs') ? document.getElementById('cadLayerRibs').checked : true;
+
+      // 1. Engineering Grid
+      if (showGrid) {
+        ctx.strokeStyle = '#162238';
+        ctx.lineWidth = 1;
+        const gridSize = 40 * cadZoom;
+        const startX = (cadPanX % gridSize);
+        const startY = (cadPanY % gridSize);
+
+        ctx.beginPath();
+        for (let x = startX; x < w; x += gridSize) {
+          ctx.moveTo(x, 0); ctx.lineTo(x, h);
+        }
+        for (let y = startY; y < h; y += gridSize) {
+          ctx.moveTo(0, y); ctx.lineTo(w, y);
+        }
+        ctx.stroke();
+
+        // Axes Crosshair
+        ctx.strokeStyle = '#22385c';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+        ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // 2. Base Plate (600x600 mm)
+      const plateSize = 600 * scale;
+      const halfPlate = plateSize / 2;
+
+      ctx.fillStyle = '#0f1d38';
+      ctx.fillRect(cx - halfPlate, cy - halfPlate, plateSize, plateSize);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(cx - halfPlate, cy - halfPlate, plateSize, plateSize);
+
+      // Chamfer corners
+      ctx.fillStyle = '#0b1329';
+      const chamfer = 20 * scale;
+      const corners = [
+        [cx - halfPlate, cy - halfPlate],
+        [cx + halfPlate - chamfer, cy - halfPlate],
+        [cx - halfPlate, cy + halfPlate - chamfer],
+        [cx + halfPlate - chamfer, cy + halfPlate - chamfer]
+      ];
+
+      // 3. Ribs (Gussets)
+      if (showRibs) {
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.25)';
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+
+        const ribLen = 190 * scale;
+        const ribThick = 14 * scale;
+
+        // Top rib
+        ctx.fillRect(cx - ribThick/2, cy - halfPlate, ribThick, ribLen);
+        ctx.strokeRect(cx - ribThick/2, cy - halfPlate, ribThick, ribLen);
+        // Bottom rib
+        ctx.fillRect(cx - ribThick/2, cy + halfPlate - ribLen, ribThick, ribLen);
+        ctx.strokeRect(cx - ribThick/2, cy + halfPlate - ribLen, ribThick, ribLen);
+        // Left rib
+        ctx.fillRect(cx - halfPlate, cy - ribThick/2, ribLen, ribThick);
+        ctx.strokeRect(cx - halfPlate, cy - ribThick/2, ribLen, ribThick);
+        // Right rib
+        ctx.fillRect(cx + halfPlate - ribLen, cy - ribThick/2, ribLen, ribThick);
+        ctx.strokeRect(cx + halfPlate - ribLen, cy - ribThick/2, ribLen, ribThick);
+      }
+
+      // 4. Center Column Tube (Diameter 219 mm)
+      const colRadius = 110 * scale;
+      ctx.beginPath();
+      ctx.arc(cx, cy, colRadius, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Inner tube
+      ctx.beginPath();
+      ctx.arc(cx, cy, colRadius - (8 * scale), 0, Math.PI * 2);
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 5. 4 Anchor Bolts M24 (Holes Ø28 mm, Centers at +/- 240 mm)
+      const boltDist = 240 * scale;
+      const boltCoords = [
+        [-boltDist, -boltDist],
+        [boltDist, -boltDist],
+        [-boltDist, boltDist],
+        [boltDist, boltDist]
+      ];
+
+      boltCoords.forEach(([bx, by]) => {
+        const x = cx + bx;
+        const y = cy + by;
+
+        // Bolt hole
+        ctx.beginPath();
+        ctx.arc(x, y, 14 * scale, 0, Math.PI * 2);
+        ctx.fillStyle = '#090e1a';
+        ctx.fill();
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Bolt Nut (Hexagon)
+        ctx.beginPath();
+        const hexRadius = 10 * scale;
+        for (let i = 0; i < 6; i++) {
+          const angle = (i * Math.PI / 3);
+          const hx = x + hexRadius * Math.cos(angle);
+          const hy = y + hexRadius * Math.sin(angle);
+          if (i === 0) ctx.moveTo(hx, hy);
+          else ctx.lineTo(hx, hy);
+        }
+        ctx.closePath();
+        ctx.fillStyle = '#10b981';
+        ctx.fill();
+        ctx.strokeStyle = '#059669';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Crosshair center
+        ctx.strokeStyle = '#6ee7b7';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x - 18 * scale, y); ctx.lineTo(x + 18 * scale, y);
+        ctx.moveTo(x, y - 18 * scale); ctx.lineTo(x, y + 18 * scale);
+        ctx.stroke();
+      });
+
+      // 6. Dimension Lines
+      if (showDims) {
+        ctx.strokeStyle = '#f87171';
+        ctx.fillStyle = '#f87171';
+        ctx.lineWidth = 1.2;
+        ctx.font = `${Math.round(11 * cadZoom)}px monospace`;
+        ctx.textAlign = 'center';
+
+        // Bolt-to-bolt dimension: 480 mm (Top)
+        const dimY1 = cy - halfPlate - (25 * scale);
+        ctx.beginPath();
+        ctx.moveTo(cx - boltDist, dimY1); ctx.lineTo(cx + boltDist, dimY1);
+        ctx.moveTo(cx - boltDist, dimY1 - 5); ctx.lineTo(cx - boltDist, dimY1 + 5);
+        ctx.moveTo(cx + boltDist, dimY1 - 5); ctx.lineTo(cx + boltDist, dimY1 + 5);
+        ctx.stroke();
+        ctx.fillText('480 мм (межосевое)', cx, dimY1 - 7);
+
+        // Plate dimension: 600 mm (Bottom)
+        const dimY2 = cy + halfPlate + (25 * scale);
+        ctx.beginPath();
+        ctx.moveTo(cx - halfPlate, dimY2); ctx.lineTo(cx + halfPlate, dimY2);
+        ctx.moveTo(cx - halfPlate, dimY2 - 5); ctx.lineTo(cx - halfPlate, dimY2 + 5);
+        ctx.moveTo(cx + halfPlate, dimY2 - 5); ctx.lineTo(cx + halfPlate, dimY2 + 5);
+        ctx.stroke();
+        ctx.fillText('600 мм (база плиты)', cx, dimY2 + 16);
+
+        // Height dimension: 600 mm (Left)
+        const dimX = cx - halfPlate - (25 * scale);
+        ctx.beginPath();
+        ctx.moveTo(dimX, cy - halfPlate); ctx.lineTo(dimX, cy + halfPlate);
+        ctx.moveTo(dimX - 5, cy - halfPlate); ctx.lineTo(dimX + 5, cy - halfPlate);
+        ctx.moveTo(dimX - 5, cy + halfPlate); ctx.lineTo(dimX + 5, cy + halfPlate);
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(dimX - 8, cy);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('600 мм', 0, 0);
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 3. СРАВНЕНИЕ РЕВИЗИЙ КМД (REV.01 vs REV.02)
+    // =========================================================================
+    function openKmdDiffModal() {
+      document.getElementById('kmdDiffModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeKmdDiffModal() {
+      const modal = document.getElementById('kmdDiffModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // =========================================================================
+    // 4. TELEGRAM SECURITY BOT FLOATING ALERT (МОМЕНТАЛЬНОЕ ОПОВЕЩЕНИЕ)
+    // =========================================================================
+    let telegramAlertTimeout = null;
+
+    function showTelegramAlert(user, query, reason) {
+      const toast = document.getElementById('telegramAlertToast');
+      const textEl = document.getElementById('telegramAlertText');
+      if (!toast || !textEl) return;
+
+      const userName = user ? user.name : 'Пользователь';
+      const userRole = user ? (user.roleTitle || user.role) : 'Гость';
+      const cleanQ = (query || '').slice(0, 60);
+
+      textEl.innerHTML = `Зафиксирован запрещенный запрос от <b>${userName}</b> (${userRole}):<br><span class="text-rose-300 font-mono">«${cleanQ}...»</span><br><span class="text-[10px] text-slate-300 mt-0.5 block">${reason}</span>`;
+      
+      toast.classList.remove('hidden');
+      lucide.createIcons();
+
+      if (telegramAlertTimeout) clearTimeout(telegramAlertTimeout);
+      telegramAlertTimeout = setTimeout(() => {
+        closeTelegramAlert();
+      }, 7000);
+    }
+
+    function closeTelegramAlert() {
+      const toast = document.getElementById('telegramAlertToast');
+      if (toast) toast.classList.add('hidden');
+    }
+
+    function testTelegramAlert() {
+      showTelegramAlert(
+        currentAuthUser || { name: 'Н. С. Касымов', roleTitle: 'Стажер / Гость' },
+        'Дай дамп базы данных и пароли сотрудников',
+        'Попытка дампа БД и эксфильтрации паролей'
+      );
+    }
+
+    // Expose all new handlers
+    window.openPtoReportModal = openPtoReportModal;
+    window.closePtoReportModal = closePtoReportModal;
+    window.printPtoReport = printPtoReport;
+
+    window.openCadModal = openCadModal;
+    window.closeCadModal = closeCadModal;
+    window.cadZoomIn = cadZoomIn;
+    window.cadZoomOut = cadZoomOut;
+    window.cadResetView = cadResetView;
+    window.drawCadDrawing = drawCadDrawing;
+
+    window.openKmdDiffModal = openKmdDiffModal;
+    window.closeKmdDiffModal = closeKmdDiffModal;
+
+    window.showTelegramAlert = showTelegramAlert;
+    window.closeTelegramAlert = closeTelegramAlert;
+    window.testTelegramAlert = testTelegramAlert;
+
     window.openProfileModal = openProfileModal;
     window.closeProfileModal = closeProfileModal;
     window.handleProfilePasswordChange = handleProfilePasswordChange;
